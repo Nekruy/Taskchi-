@@ -1,0 +1,15 @@
+{
+  "compilerOptions": {
+    "module": "commonjs",
+    "target": "ES2019",
+    "lib": ["ES2019"],
+    "strict": false,
+    "esModuleInterop": true,
+    "outDir": ".",
+    "rootDir": ".",
+    "skipLibCheck": true,
+    "resolveJsonModule": true
+  },
+  "include": ["server.ts", "prisma/seed.ts"],
+  "exclude": ["node_modules", ".next"]
+}

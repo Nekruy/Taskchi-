@@ -1,0 +1,240 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ─── Enums ────────────────────────────────────────────────────────────────────
+
+enum TaskCategory {
+  CHILDREN   // Дети / Кӯдакон
+  SHOPPING   // Покупки / Харидорӣ
+  DELIVERY   // Доставка / Расонидан
+  QUEUE      // Очередь / Навбат
+  HOUSEHOLD  // Домашние дела / Корҳои хонагӣ
+  ONLINE     // Онлайн / Интернет
+}
+
+enum TaskStatus {
+  OPEN        // Открыта / Кушода
+  IN_PROGRESS // В работе / Дар кор
+  REVIEW      // На проверке / Дар баррасӣ
+  DONE        // Выполнена / Иҷро шуд
+  CANCELLED   // Отменена / Бекор шуд
+}
+
+enum OfferStatus {
+  PENDING   // Ожидание / Интизор
+  ACCEPTED  // Принята / Қабул шуд
+  REJECTED  // Отклонена / Рад шуд
+  WITHDRAWN // Отозвана / Бозгашта
+}
+
+enum EscrowStatus {
+  HELD     // Удерживается / Нигоҳ дошта шудааст
+  RELEASED // Освобождён / Озод шуд
+  REFUNDED // Возвращён / Баргардонида шуд
+}
+
+enum ContractStatus {
+  DRAFT   // Черновик / Пешнавис
+  SIGNED  // Подписан / Имзо шуд
+  EXPIRED // Истёк / Гузашт
+}
+
+enum DisputeStatus {
+  OPEN
+  RESOLVED_CUSTOMER
+  RESOLVED_EXECUTOR
+  CLOSED
+}
+
+// ─── Models ───────────────────────────────────────────────────────────────────
+
+model User {
+  id             String   @id @default(cuid())
+  name           String
+  email          String   @unique
+  emailVerified  DateTime?
+  passwordHash   String
+  phone          String?
+  avatar         String?
+  bio            String?
+  telegramId     String?  @unique
+  telegramHandle String?
+  rating         Float    @default(0)
+  reviewCount    Int      @default(0)
+  isVerified     Boolean  @default(false)
+  isBanned        Boolean  @default(false)
+  isAdmin         Boolean  @default(false)
+  city            String   @default("Душанбе")
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  // Relations
+  tasksCreated         Task[]    @relation("TaskCreator")
+  tasksExecuted        Task[]    @relation("TaskExecutor")
+  offers               Offer[]
+  reviewsGiven         Review[]  @relation("ReviewGiver")
+  reviewsReceived      Review[]  @relation("ReviewReceiver")
+  escrows              Escrow[]
+  contractsAsCustomer  Contract[] @relation("ContractCustomer")
+  contractsAsExecutor  Contract[] @relation("ContractExecutor")
+  chatsAsCustomer      Chat[]     @relation("ChatCustomer")
+  chatsAsExecutor      Chat[]     @relation("ChatExecutor")
+  messages             Message[]
+  disputesFiled        Dispute[]  @relation("DisputeFiler")
+  disputesResolved     Dispute[]  @relation("DisputeResolver")
+
+  @@map("users")
+}
+
+model Task {
+  id              String       @id @default(cuid())
+  title           String
+  description     String
+  category        TaskCategory
+  status          TaskStatus   @default(OPEN)
+  budget          Float
+  commissionFee   Float        @default(0)
+  address         String?
+  city            String       @default("Душанбе")
+  latitude        Float?
+  longitude       Float?
+  isGroupTask     Boolean      @default(false)
+  executorsNeeded Int          @default(1)
+  deadline        DateTime?
+  aiParsed        Boolean      @default(false)
+  rawInput        String?      // Исходный текст для AI-парсинга
+
+  creatorId  String
+  creator    User    @relation("TaskCreator", fields: [creatorId], references: [id])
+  executorId String?
+  executor   User?   @relation("TaskExecutor", fields: [executorId], references: [id])
+
+  offers    Offer[]
+  contract  Contract?
+  escrow    Escrow?
+  chat      Chat?
+  dispute   Dispute?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("tasks")
+}
+
+model Offer {
+  id          String      @id @default(cuid())
+  price       Float
+  message     String
+  status      OfferStatus @default(PENDING)
+  executorId  String
+  executor    User        @relation(fields: [executorId], references: [id])
+  taskId      String
+  task        Task        @relation(fields: [taskId], references: [id])
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+
+  @@unique([executorId, taskId])
+  @@map("offers")
+}
+
+model Contract {
+  id          String         @id @default(cuid())
+  taskId      String         @unique
+  task        Task           @relation(fields: [taskId], references: [id])
+  customerId  String
+  customer    User           @relation("ContractCustomer", fields: [customerId], references: [id])
+  executorId  String
+  executor    User           @relation("ContractExecutor", fields: [executorId], references: [id])
+  content     String         // Текст договора от Groq
+  pdfUrl      String?        // Путь к PDF
+  status      ContractStatus @default(DRAFT)
+  signedAt    DateTime?
+  expiresAt   DateTime?
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+
+  @@map("contracts")
+}
+
+model Escrow {
+  id          String       @id @default(cuid())
+  taskId      String       @unique
+  task        Task         @relation(fields: [taskId], references: [id])
+  holderId    String
+  holder      User         @relation(fields: [holderId], references: [id])
+  amount      Float
+  commission  Float
+  status      EscrowStatus @default(HELD)
+  releasedAt  DateTime?
+  refundedAt  DateTime?
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+
+  @@map("escrows")
+}
+
+model Chat {
+  id         String   @id @default(cuid())
+  taskId     String   @unique
+  task       Task     @relation(fields: [taskId], references: [id])
+  customerId String
+  customer   User     @relation("ChatCustomer", fields: [customerId], references: [id])
+  executorId String
+  executor   User     @relation("ChatExecutor", fields: [executorId], references: [id])
+  messages   Message[]
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@map("chats")
+}
+
+model Message {
+  id        String   @id @default(cuid())
+  chatId    String
+  chat      Chat     @relation(fields: [chatId], references: [id])
+  senderId  String
+  sender    User     @relation(fields: [senderId], references: [id])
+  content   String
+  isRead    Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  @@map("messages")
+}
+
+model Review {
+  id         String   @id @default(cuid())
+  rating     Int      // 1–5
+  comment    String?
+  giverId    String
+  giver      User     @relation("ReviewGiver", fields: [giverId], references: [id])
+  receiverId String
+  receiver   User     @relation("ReviewReceiver", fields: [receiverId], references: [id])
+  taskId     String
+  createdAt  DateTime @default(now())
+
+  @@unique([giverId, taskId])
+  @@map("reviews")
+}
+
+model Dispute {
+  id           String        @id @default(cuid())
+  taskId       String        @unique
+  task         Task          @relation(fields: [taskId], references: [id])
+  filedById    String
+  filedBy      User          @relation("DisputeFiler", fields: [filedById], references: [id])
+  reason       String
+  status       DisputeStatus @default(OPEN)
+  resolution   String?
+  resolvedById String?
+  resolvedBy   User?         @relation("DisputeResolver", fields: [resolvedById], references: [id])
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+
+  @@map("disputes")
+}
