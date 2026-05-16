@@ -13,6 +13,10 @@ RUN npm install
 COPY . .
 
 ENV NODE_ENV=production
+ENV DATABASE_URL=postgresql://dummy:dummy@localhost:5432/dummy?schema=public
+ENV NEXTAUTH_SECRET=dummy-build-secret-not-used-at-runtime
+ENV NEXTAUTH_URL=http://localhost:3000
+ENV SKIP_ENV_VALIDATION=1
 
 RUN npx prisma generate
 

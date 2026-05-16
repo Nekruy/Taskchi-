@@ -9,35 +9,47 @@ export const revalidate = 0;
 /* ── DB queries ──────────────────────────────────────────────── */
 async function getStats() {
   noStore();
-  const [totalTasks, totalUsers, doneTasks] = await Promise.all([
-    prisma.task.count(),
-    prisma.user.count(),
-    prisma.task.count({ where: { status: "DONE" } }),
-  ]);
-  return { totalTasks, totalUsers, doneTasks };
+  try {
+    const [totalTasks, totalUsers, doneTasks] = await Promise.all([
+      prisma.task.count(),
+      prisma.user.count(),
+      prisma.task.count({ where: { status: "DONE" } }),
+    ]);
+    return { totalTasks, totalUsers, doneTasks };
+  } catch {
+    return { totalTasks: 0, totalUsers: 0, doneTasks: 0 };
+  }
 }
 
 async function getRecentTasks() {
   noStore();
-  return prisma.task.findMany({
-    where: { status: "OPEN" },
-    include: {
-      creator: { select: { id: true, name: true, avatar: true, rating: true } },
-      _count:  { select: { offers: true } },
-    },
-    orderBy: { createdAt: "desc" },
-    take: 6,
-  });
+  try {
+    return await prisma.task.findMany({
+      where: { status: "OPEN" },
+      include: {
+        creator: { select: { id: true, name: true, avatar: true, rating: true } },
+        _count:  { select: { offers: true } },
+      },
+      orderBy: { createdAt: "desc" },
+      take: 6,
+    });
+  } catch {
+    return [];
+  }
 }
 
 async function getTopExecutors() {
   noStore();
-  return prisma.user.findMany({
-    orderBy: [{ reviewCount: "desc" }, { rating: "desc" }],
-    where: { reviewCount: { gt: 0 } },
-    select: { id: true, name: true, avatar: true, rating: true, reviewCount: true, city: true },
-    take: 4,
-  });
+  try {
+    return await prisma.user.findMany({
+      orderBy: [{ reviewCount: "desc" }, { rating: "desc" }],
+      where: { reviewCount: { gt: 0 } },
+      select: { id: true, name: true, avatar: true, rating: true, reviewCount: true, city: true },
+      take: 4,
+    });
+  } catch {
+    return [];
+  }
 }
 
 /* ── Static data ─────────────────────────────────────────────── */
