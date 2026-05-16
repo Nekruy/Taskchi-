@@ -1,10 +1,13 @@
+import { unstable_noStore as noStore } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { MapClient } from "./MapClient";
 
 export const dynamic = "force-dynamic";
+export const revalidate = 0;
 export const metadata = { title: "Карта задач" };
 
 export default async function MapPage() {
+  noStore();
   const tasks = await prisma.task.findMany({
     where: {
       status: "OPEN",

@@ -1,11 +1,14 @@
 import Link from "next/link";
+import { unstable_noStore as noStore } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { TaskCard } from "@/components/TaskCard";
 
 export const dynamic = "force-dynamic";
+export const revalidate = 0;
 
 /* ── DB queries ──────────────────────────────────────────────── */
 async function getStats() {
+  noStore();
   const [totalTasks, totalUsers, doneTasks] = await Promise.all([
     prisma.task.count(),
     prisma.user.count(),
@@ -15,6 +18,7 @@ async function getStats() {
 }
 
 async function getRecentTasks() {
+  noStore();
   return prisma.task.findMany({
     where: { status: "OPEN" },
     include: {
@@ -27,6 +31,7 @@ async function getRecentTasks() {
 }
 
 async function getTopExecutors() {
+  noStore();
   return prisma.user.findMany({
     orderBy: [{ reviewCount: "desc" }, { rating: "desc" }],
     where: { reviewCount: { gt: 0 } },
