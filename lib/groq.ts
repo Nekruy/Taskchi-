@@ -1,8 +1,16 @@
 import Groq from "groq-sdk";
 
-const groq = new Groq({
-  apiKey: process.env.GROQ_API_KEY!,
-});
+let groqClient: Groq | null = null;
+
+function getGroq(): Groq {
+  if (!process.env.GROQ_API_KEY) {
+    throw new Error("Missing GROQ_API_KEY");
+  }
+  if (!groqClient) {
+    groqClient = new Groq({ apiKey: process.env.GROQ_API_KEY });
+  }
+  return groqClient;
+}
 
 const MODEL = process.env.GROQ_MODEL || "llama-3.3-70b-versatile";
 
@@ -55,7 +63,7 @@ export async function parseTaskFromText(rawText: string): Promise<ParsedTask> {
   "executorsNeeded": 1
 }`;
 
-  const completion = await groq.chat.completions.create({
+  const completion = await getGroq().chat.completions.create({
     model: MODEL,
     messages: [{ role: "user", content: prompt }],
     temperature: 0.3,
@@ -123,7 +131,7 @@ export async function generateContractText(params: ContractParams): Promise<stri
 
 Договор должен быть юридически грамотным, но простым для понимания. Учти законодательство Республики Таджикистан.`;
 
-  const completion = await groq.chat.completions.create({
+  const completion = await getGroq().chat.completions.create({
     model: MODEL,
     messages: [{ role: "user", content: prompt }],
     temperature: 0.2,
@@ -153,7 +161,7 @@ ${profilesText}
 Оцени подходящих исполнителей и верни топ-3 в формате JSON массива (без markdown):
 [{"userId": "id", "score": 0-100, "reason": "краткое объяснение на русском"}]`;
 
-  const completion = await groq.chat.completions.create({
+  const completion = await getGroq().chat.completions.create({
     model: MODEL,
     messages: [{ role: "user", content: prompt }],
     temperature: 0.4,
@@ -175,7 +183,7 @@ export async function getAIAssistantReply(
   userMessage: string,
   context: string
 ): Promise<string> {
-  const completion = await groq.chat.completions.create({
+  const completion = await getGroq().chat.completions.create({
     model: MODEL,
     messages: [
       {
