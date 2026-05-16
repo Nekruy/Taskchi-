@@ -6,6 +6,8 @@ import Link from "next/link";
 import { TaskCard } from "@/components/TaskCard";
 import { RoleTabs } from "./RoleTabs";
 
+export const dynamic = "force-dynamic";
+
 export const metadata = { title: "Дашборд — Taskchi" };
 
 interface PageProps {

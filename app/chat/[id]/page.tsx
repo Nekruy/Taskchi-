@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { redirect, notFound } from "next/navigation";
 import { ChatClient } from "./ChatClient";
 
+export const dynamic = "force-dynamic";
 export const metadata = { title: "Чат" };
 
 export default async function ChatPage({ params }: { params: { id: string } }) {

@@ -1,6 +1,7 @@
 import { prisma } from "@/lib/prisma";
 import { MapClient } from "./MapClient";
 
+export const dynamic = "force-dynamic";
 export const metadata = { title: "Карта задач" };
 
 export default async function MapPage() {

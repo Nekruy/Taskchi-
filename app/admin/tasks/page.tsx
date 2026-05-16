@@ -3,6 +3,7 @@ import Link from "next/link";
 import { Metadata } from "next";
 import { TaskActions } from "./TaskActions";
 
+export const dynamic = "force-dynamic";
 export const metadata: Metadata = { title: "Задачи" };
 
 interface PageProps {

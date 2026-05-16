@@ -2,6 +2,8 @@ import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { TaskCard } from "@/components/TaskCard";
 
+export const dynamic = "force-dynamic";
+
 /* ── DB queries ──────────────────────────────────────────────── */
 async function getStats() {
   const [totalTasks, totalUsers, doneTasks] = await Promise.all([

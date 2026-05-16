@@ -4,6 +4,8 @@ import Link from "next/link";
 import { TaskFilters } from "./TaskFilters";
 import { Suspense } from "react";
 
+export const dynamic = "force-dynamic";
+
 interface PageProps {
   searchParams: {
     category?: string;

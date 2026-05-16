@@ -3,6 +3,7 @@ import Link from "next/link";
 import { Metadata } from "next";
 import { DisputeActions } from "./DisputeActions";
 
+export const dynamic = "force-dynamic";
 export const metadata: Metadata = { title: "Споры" };
 
 interface PageProps {
