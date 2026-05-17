@@ -30,7 +30,7 @@ export function Navbar() {
   }
 
   return (
-    <header className="sticky top-0 z-50 bg-white" style={{ boxShadow: "0 1px 0 #e5e7eb, 0 2px 8px rgba(0,0,0,.06)" }}>
+    <header className="sticky top-0 z-50 bg-white" style={{ boxShadow: "0 1px 0 #e5e7eb, 0 4px 16px rgba(0,0,0,.08)" }}>
       <div className="max-w-7xl mx-auto px-4 sm:px-6 h-16 flex items-center gap-4">
 
         {/* ── Logo ── */}

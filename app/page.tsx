@@ -2,6 +2,7 @@ import Link from "next/link";
 import { unstable_noStore as noStore } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { TaskCard } from "@/components/TaskCard";
+import { StatsCounter } from "@/components/StatsCounter";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -94,8 +95,10 @@ export default async function HomePage() {
   return (
     <div>
       {/* ════════════════════════════ HERO ════════════════════════════ */}
-      <section className="bg-gradient-to-br from-green-50 via-emerald-50 to-white overflow-hidden">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 py-16 md:py-24">
+      <section className="relative bg-gradient-to-br from-green-50 via-emerald-50 to-white overflow-hidden border-b-2 border-green-100">
+        {/* Dot pattern overlay */}
+        <div className="absolute inset-0 dot-pattern pointer-events-none" aria-hidden="true" />
+        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 py-16 md:py-24">
           <div className="grid md:grid-cols-2 gap-12 items-center min-h-[520px]">
 
             {/* ── Left: text + search ── */}
@@ -128,7 +131,7 @@ export default async function HomePage() {
                     className="flex-1 px-5 py-4 text-gray-800 placeholder-gray-400 text-sm bg-transparent focus:outline-none"
                   />
                   <button type="submit"
-                    className="btn-primary rounded-none rounded-r-xl px-6 py-4 text-sm shrink-0">
+                    className="btn-primary rounded-none rounded-r-xl px-6 py-4 text-sm shrink-0 animate-btn-pulse">
                     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5}
                         d="M13 10V3L4 14h7v7l9-11h-7z" />
@@ -236,22 +239,7 @@ export default async function HomePage() {
       {/* ════════════════════════════ STATS ════════════════════════════ */}
       <section className="bg-white border-y border-gray-100">
         <div className="max-w-4xl mx-auto px-4 py-8">
-          <div className="grid grid-cols-3 gap-4">
-            {[
-              { n: stats.totalTasks, label: "Поручений создано", emoji: "📋", color: "text-[#14A800]" },
-              { n: stats.totalUsers, label: "Пользователей",     emoji: "👥", color: "text-blue-500"   },
-              { n: stats.doneTasks,  label: "Успешно выполнено", emoji: "✅", color: "text-emerald-500" },
-            ].map((s) => (
-              <div key={s.label}
-                   className="flex flex-col items-center gap-1 py-4 px-2 rounded-2xl bg-gray-50 border border-gray-100 text-center"
-                   style={{ boxShadow: "0 1px 4px rgba(0,0,0,.04)" }}>
-                <span className={`text-3xl font-extrabold ${s.color}`}>
-                  {s.n.toLocaleString("ru-RU")}
-                </span>
-                <span className="text-xs text-gray-500 font-medium">{s.emoji} {s.label}</span>
-              </div>
-            ))}
-          </div>
+          <StatsCounter stats={stats} />
         </div>
       </section>
 
@@ -266,7 +254,7 @@ export default async function HomePage() {
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-3">
             {CATEGORIES.map((cat) => (
               <Link key={cat.key} href={`/tasks?category=${cat.key}`}
-                className={`${cat.bg} border rounded-2xl p-4 text-center group transition-all duration-200 hover:shadow-md hover:-translate-y-1 hover:border-green-200`}>
+                className={`${cat.bg} border rounded-2xl p-4 text-center group transition-all duration-200 hover:shadow-md hover:-translate-y-1 hover:scale-[1.03] hover:border-green-200`}>
                 <div className={`w-12 h-12 mx-auto mb-3 rounded-2xl bg-gradient-to-br ${cat.from} ${cat.to} flex items-center justify-center text-2xl shadow-sm group-hover:shadow-md transition-shadow`}>
                   {cat.emoji}
                 </div>

@@ -150,3 +150,20 @@ body {
 .animate-slide-up { animation: slideUp .3s  ease-out; }
 .animate-float    { animation: float   4s   ease-in-out infinite; }
 .animate-float-slow { animation: float 6s  ease-in-out infinite; }
+
+/* ── Dot pattern ───────────────────────────────────────────────────── */
+.dot-pattern {
+  background-color: #f8fffe;
+  background-image: radial-gradient(#14A800 1px, transparent 1px);
+  background-size: 24px 24px;
+  opacity: 0.15;
+}
+
+/* ── Button pulse (every 3s) ───────────────────────────────────────── */
+@keyframes btn-pulse {
+  0%, 60%, 100% { box-shadow: var(--shadow-green); }
+  70%  { box-shadow: 0 0 0 6px rgba(20,168,0,.22); }
+  82%  { box-shadow: 0 0 0 12px rgba(20,168,0,.08); }
+  93%  { box-shadow: 0 0 0 18px rgba(20,168,0,.0); }
+}
+.animate-btn-pulse { animation: btn-pulse 3s ease-in-out infinite; }
