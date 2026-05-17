@@ -82,7 +82,7 @@ app.prepare().then(() => {
   // Make io available globally for API routes
   (global as Record<string, unknown>).io = io;
 
-  httpServer.listen(port, () => {
+  httpServer.listen(port, hostname, () => {
     console.log(`✅ Taskchi готов: http://${hostname}:${port}`);
   });
 });
