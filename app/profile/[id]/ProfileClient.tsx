@@ -5,6 +5,50 @@ import { useRouter } from "next/navigation";
 import { Session } from "next-auth";
 import Link from "next/link";
 
+function VerificationBadge({ isVerified, isChildVerified, pendingVerification }: {
+  isVerified: boolean;
+  isChildVerified: boolean;
+  pendingVerification: boolean;
+}) {
+  if (isVerified && isChildVerified) {
+    return (
+      <div className="flex flex-wrap gap-1.5 justify-center mt-2">
+        <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-green-100 text-green-700 rounded-full text-xs font-semibold">
+          ✓ Верифицирован
+        </span>
+        <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-blue-100 text-blue-700 rounded-full text-xs font-semibold">
+          👶 Детские задачи
+        </span>
+      </div>
+    );
+  }
+  if (isVerified) {
+    return (
+      <div className="flex justify-center mt-2">
+        <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-green-100 text-green-700 rounded-full text-xs font-semibold">
+          ✓ Верифицирован
+        </span>
+      </div>
+    );
+  }
+  if (pendingVerification) {
+    return (
+      <div className="flex justify-center mt-2">
+        <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-amber-100 text-amber-700 rounded-full text-xs font-semibold">
+          ⏳ На проверке
+        </span>
+      </div>
+    );
+  }
+  return (
+    <div className="flex justify-center mt-2">
+      <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-gray-100 text-gray-500 rounded-full text-xs font-medium">
+        Не верифицирован
+      </span>
+    </div>
+  );
+}
+
 interface ProfileClientProps {
   user: {
     id: string;
@@ -15,9 +59,11 @@ interface ProfileClientProps {
     rating: number;
     reviewCount: number;
     isVerified: boolean;
+    isChildVerified: boolean;
     createdAt: Date | string;
     phone?: string | null;
     telegramHandle?: string | null;
+    verification?: { status: string } | null;
     tasksCreated: Array<{ id: string; title: string; budget: number; createdAt: Date | string }>;
     tasksExecuted: Array<{ id: string; title: string; budget: number; createdAt: Date | string }>;
     reviewsReceived: Array<{
@@ -88,12 +134,15 @@ export function ProfileClient({ user, session }: ProfileClientProps) {
               )}
             </div>
 
-            <div className="flex items-center justify-center gap-2 mb-1">
-              <h1 className="text-xl font-bold text-slate-800">{user.name}</h1>
-              {user.isVerified && <span title="Верифицирован">✅</span>}
-            </div>
+            <h1 className="text-xl font-bold text-slate-800 mb-1">{user.name}</h1>
 
-            <div className="text-slate-500 text-sm">📍 {user.city}</div>
+            <VerificationBadge
+              isVerified={user.isVerified}
+              isChildVerified={user.isChildVerified}
+              pendingVerification={user.verification?.status === "PENDING"}
+            />
+
+            <div className="text-slate-500 text-sm mt-2">📍 {user.city}</div>
 
             {user.rating > 0 && (
               <div className="flex items-center justify-center gap-1 mt-2">
@@ -123,13 +172,29 @@ export function ProfileClient({ user, session }: ProfileClientProps) {
             )}
 
             {isOwn && (
-              <div className="mt-4">
+              <div className="mt-4 space-y-2">
                 <button
                   onClick={() => setEditing(!editing)}
                   className="btn-secondary text-sm w-full"
                 >
                   {editing ? "Отмена" : "✏️ Редактировать"}
                 </button>
+                {!user.isVerified && user.verification?.status !== "PENDING" && (
+                  <Link
+                    href="/verify/phone"
+                    className="block text-center text-sm w-full py-2 px-3 bg-[#14A800] text-white rounded-xl font-semibold hover:bg-[#0d8c00] transition-colors"
+                  >
+                    🛡️ Пройти верификацию
+                  </Link>
+                )}
+                {user.verification?.status === "PENDING" && (
+                  <Link
+                    href="/verify/status"
+                    className="block text-center text-sm w-full py-2 px-3 bg-amber-50 text-amber-700 border border-amber-200 rounded-xl font-semibold hover:bg-amber-100 transition-colors"
+                  >
+                    ⏳ Статус верификации
+                  </Link>
+                )}
               </div>
             )}
           </div>

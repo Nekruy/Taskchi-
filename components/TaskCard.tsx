@@ -60,7 +60,7 @@ export interface TaskCardProps {
     createdAt?: Date;
     isGroupTask: boolean;
     executorsNeeded: number;
-    creator: { id: string; name: string; avatar?: string | null; rating: number };
+    creator: { id: string; name: string; avatar?: string | null; rating: number; isVerified?: boolean };
     _count: { offers: number };
   };
 }
@@ -127,7 +127,12 @@ export function TaskCard({ task }: TaskCardProps) {
           {task.creator.name[0]?.toUpperCase()}
         </div>
         <div className="flex-1 min-w-0">
-          <p className="text-xs font-semibold text-gray-700 truncate">{task.creator.name}</p>
+          <div className="flex items-center gap-1.5">
+            <p className="text-xs font-semibold text-gray-700 truncate">{task.creator.name}</p>
+            {task.creator.isVerified && (
+              <span title="Верифицирован" className="text-[#14A800] text-xs shrink-0">✓</span>
+            )}
+          </div>
           {task.creator.rating > 0
             ? <Stars rating={task.creator.rating} />
             : <span className="text-xs text-gray-400">Новый</span>

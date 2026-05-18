@@ -27,9 +27,11 @@ export default async function ProfilePage({ params }: { params: { id: string } }
         rating: true,
         reviewCount: true,
         isVerified: true,
+        isChildVerified: true,
         createdAt: true,
         phone: true,
         telegramHandle: true,
+        verification: { select: { status: true } },
         tasksCreated: {
           where: { status: "DONE" },
           select: { id: true, title: true, budget: true, createdAt: true },

@@ -33,6 +33,7 @@ export function TaskFilters() {
   const minBudget = searchParams.get("min") || "";
   const maxBudget = searchParams.get("max") || "";
 
+  const verifiedOnly = searchParams.get("verified") === "1";
   const [cityInput, setCityInput] = useState(city);
   const [minInput, setMinInput] = useState(minBudget);
   const [maxInput, setMaxInput] = useState(maxBudget);
@@ -45,12 +46,13 @@ export function TaskFilters() {
       if (city) vals.city = city;
       if (minBudget) vals.min = minBudget;
       if (maxBudget) vals.max = maxBudget;
+      if (verifiedOnly) vals.verified = "1";
       Object.assign(vals, overrides);
       const p = new URLSearchParams();
       Object.entries(vals).forEach(([k, v]) => { if (v) p.set(k, v); });
       return `/tasks${p.toString() ? `?${p.toString()}` : ""}`;
     },
-    [category, sort, city, minBudget, maxBudget]
+    [category, sort, city, minBudget, maxBudget, verifiedOnly]
   );
 
   function applyFilters() {
@@ -64,7 +66,7 @@ export function TaskFilters() {
     router.push("/tasks");
   }
 
-  const hasActiveFilters = !!(category || city || minBudget || maxBudget || sort !== "newest");
+  const hasActiveFilters = !!(category || city || minBudget || maxBudget || sort !== "newest" || verifiedOnly);
 
   return (
     <aside className="hidden lg:block w-64 shrink-0">
@@ -103,6 +105,21 @@ export function TaskFilters() {
               </button>
             ))}
           </div>
+        </div>
+
+        {/* Verified filter */}
+        <div className="mb-5">
+          <label className="flex items-center gap-2.5 cursor-pointer group">
+            <div
+              onClick={() => router.push(buildUrl({ verified: verifiedOnly ? "" : "1" }))}
+              className={`relative w-9 h-5 rounded-full transition-colors ${verifiedOnly ? "bg-[#14A800]" : "bg-gray-200"}`}
+            >
+              <span className={`absolute top-0.5 left-0.5 w-4 h-4 bg-white rounded-full shadow transition-transform ${verifiedOnly ? "translate-x-4" : ""}`} />
+            </div>
+            <span className="text-sm font-medium text-gray-700 group-hover:text-gray-900">
+              ✓ Только верифицированные
+            </span>
+          </label>
         </div>
 
         {/* Sort */}

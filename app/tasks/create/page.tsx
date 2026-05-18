@@ -7,7 +7,7 @@ import Link from "next/link";
 import { Suspense } from "react";
 
 const CATEGORIES = [
-  { key: "CHILDREN", label: "Дети", emoji: "🧒", desc: "Садик, школа, секции" },
+  { key: "CHILDREN", label: "Дети", emoji: "🧒", desc: "Только проверенные исполнители" },
   { key: "SHOPPING", label: "Покупки", emoji: "🛒", desc: "Магазин, доставка" },
   { key: "DELIVERY", label: "Доставка", emoji: "🚗", desc: "Посылки, химчистка" },
   { key: "QUEUE", label: "Очередь", emoji: "⏰", desc: "ОВИР, банк, поликлиника" },
@@ -328,6 +328,16 @@ function CreateTaskInner() {
               ))}
             </div>
           </div>
+
+          {form.category === "CHILDREN" && (
+            <div className="flex items-start gap-2 bg-blue-50 border border-blue-200 rounded-xl px-4 py-3 text-sm text-blue-700">
+              <span className="shrink-0 mt-0.5">👶</span>
+              <span>
+                <strong>Только верифицированные исполнители</strong> — к детским задачам допускаются
+                исполнители, прошедшие расширенную проверку документов.
+              </span>
+            </div>
+          )}
 
           <div className="grid grid-cols-2 gap-4">
             <div>

@@ -14,6 +14,7 @@ const navLinks = [
   { href: "/admin/tasks", icon: "📋", label: "Задачи" },
   { href: "/admin/disputes", icon: "⚖️", label: "Споры" },
   { href: "/admin/finances", icon: "💰", label: "Финансы" },
+  { href: "/admin/verification", icon: "🛡️", label: "Верификация" },
 ];
 
 export function AdminSidebar({ userName, userEmail }: AdminSidebarProps) {

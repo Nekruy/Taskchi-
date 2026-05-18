@@ -53,6 +53,18 @@ enum DisputeStatus {
   CLOSED
 }
 
+enum VerificationStatus {
+  NOT_SUBMITTED
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+enum VerificationType {
+  BASIC
+  CHILDREN
+}
+
 // ─── Models ───────────────────────────────────────────────────────────────────
 
 model User {
@@ -68,7 +80,8 @@ model User {
   telegramHandle String?
   rating         Float    @default(0)
   reviewCount    Int      @default(0)
-  isVerified     Boolean  @default(false)
+  isVerified      Boolean  @default(false)
+  isChildVerified Boolean  @default(false)
   isBanned        Boolean  @default(false)
   isAdmin         Boolean  @default(false)
   city            String   @default("Душанбе")
@@ -89,6 +102,7 @@ model User {
   messages             Message[]
   disputesFiled        Dispute[]  @relation("DisputeFiler")
   disputesResolved     Dispute[]  @relation("DisputeResolver")
+  verification         Verification?
 
   @@map("users")
 }
@@ -238,4 +252,32 @@ model Dispute {
   updatedAt    DateTime      @updatedAt
 
   @@map("disputes")
+}
+
+model Verification {
+  id            String             @id @default(cuid())
+  userId        String             @unique
+  user          User               @relation(fields: [userId], references: [id])
+  passportPhoto String?
+  selfiePhoto   String?
+  status        VerificationStatus @default(PENDING)
+  type          VerificationType   @default(BASIC)
+  adminNote     String?
+  reviewedBy    String?
+  reviewedAt    DateTime?
+  createdAt     DateTime           @default(now())
+  updatedAt     DateTime           @updatedAt
+
+  @@map("verifications")
+}
+
+model OtpCode {
+  id        String   @id @default(cuid())
+  phone     String
+  code      String
+  expiresAt DateTime
+  used      Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  @@map("otp_codes")
 }

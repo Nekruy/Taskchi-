@@ -15,6 +15,7 @@ interface PageProps {
     sort?: string;
     min?: string;
     max?: string;
+    verified?: string;
   };
 }
 
@@ -26,6 +27,7 @@ export default async function TasksPage({ searchParams }: PageProps) {
   const sort = searchParams.sort || "newest";
   const minBudget = parseInt(searchParams.min || "0") || 0;
   const maxBudget = parseInt(searchParams.max || "0") || 0;
+  const verifiedOnly = searchParams.verified === "1";
   const limit = 12;
   const skip = (page - 1) * limit;
 
@@ -39,6 +41,7 @@ export default async function TasksPage({ searchParams }: PageProps) {
       ...(maxBudget ? { lte: maxBudget } : {}),
     };
   }
+  if (verifiedOnly) where.creator = { isVerified: true };
 
   const orderBy =
     sort === "budget_high" ? { budget: "desc" as const } :
@@ -49,7 +52,7 @@ export default async function TasksPage({ searchParams }: PageProps) {
     prisma.task.findMany({
       where,
       include: {
-        creator: { select: { id: true, name: true, avatar: true, rating: true } },
+        creator: { select: { id: true, name: true, avatar: true, rating: true, isVerified: true } },
         _count: { select: { offers: true } },
       },
       orderBy,
@@ -69,6 +72,7 @@ export default async function TasksPage({ searchParams }: PageProps) {
     if (sort !== "newest") base.sort = sort;
     if (minBudget) base.min = String(minBudget);
     if (maxBudget) base.max = String(maxBudget);
+    if (verifiedOnly) base.verified = "1";
     const merged = { ...base, ...overrides };
     const p = new URLSearchParams();
     Object.entries(merged).forEach(([k, v]) => { if (v) p.set(k, v); });
@@ -76,7 +80,7 @@ export default async function TasksPage({ searchParams }: PageProps) {
     return `/tasks${qs ? `?${qs}` : ""}`;
   }
 
-  const activeFiltersCount = [category, city, q, minBudget > 0, maxBudget > 0, sort !== "newest"].filter(Boolean).length;
+  const activeFiltersCount = [category, city, q, minBudget > 0, maxBudget > 0, sort !== "newest", verifiedOnly].filter(Boolean).length;
 
   return (
     <div className="max-w-7xl mx-auto px-4 py-8">
