@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import bcrypt from "bcryptjs";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
+import { Prisma } from "@prisma/client";
 
 const RegisterSchema = z.object({
   name: z.string().min(2, "Имя слишком короткое").max(50),
@@ -51,7 +52,32 @@ export async function POST(req: NextRequest) {
     if (err instanceof z.ZodError) {
       return NextResponse.json({ error: err.errors[0].message }, { status: 400 });
     }
-    console.error("[Register]", err);
+
+    if (err instanceof Prisma.PrismaClientKnownRequestError) {
+      console.error("[Register] Prisma known error", err.code, err.message, err.meta);
+      // P2002 = unique constraint (race condition on email)
+      if (err.code === "P2002") {
+        return NextResponse.json(
+          { error: "Пользователь с таким email уже существует" },
+          { status: 409 }
+        );
+      }
+      return NextResponse.json(
+        { error: `Ошибка БД: ${err.code}` },
+        { status: 500 }
+      );
+    }
+
+    if (err instanceof Prisma.PrismaClientInitializationError) {
+      console.error("[Register] Prisma init error", err.errorCode, err.message);
+      return NextResponse.json({ error: "Ошибка подключения к БД" }, { status: 500 });
+    }
+
+    if (err instanceof Prisma.PrismaClientUnknownRequestError) {
+      console.error("[Register] Prisma unknown error", err.message);
+    }
+
+    console.error("[Register] Unexpected error:", err);
     return NextResponse.json({ error: "Ошибка сервера" }, { status: 500 });
   }
 }
