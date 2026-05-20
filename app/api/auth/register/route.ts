@@ -3,6 +3,7 @@ import bcrypt from "bcryptjs";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { Prisma } from "@prisma/client";
+import { sendVerificationEmail } from "@/lib/email";
 
 const RegisterSchema = z.object({
   name: z.string().min(2, "Имя слишком короткое").max(50),
@@ -29,25 +30,31 @@ export async function POST(req: NextRequest) {
     }
 
     const passwordHash = await bcrypt.hash(data.password, 12);
+    const verifyCode = String(Math.floor(100000 + Math.random() * 900000));
+    const verifyExpiry = new Date(Date.now() + 24 * 60 * 60 * 1000);
 
-    const user = await prisma.user.create({
+    await prisma.user.create({
       data: {
         name: data.name,
         email: data.email.toLowerCase(),
         passwordHash,
         phone: data.phone,
         city: data.city || "Душанбе",
-      },
-      select: {
-        id: true,
-        name: true,
-        email: true,
-        city: true,
-        createdAt: true,
+        emailVerifyToken: verifyCode,
+        emailVerifyExpiry: verifyExpiry,
       },
     });
 
-    return NextResponse.json({ user }, { status: 201 });
+    try {
+      await sendVerificationEmail(data.email.toLowerCase(), data.name, verifyCode);
+    } catch (emailErr) {
+      console.error("[Register] Failed to send verification email:", emailErr);
+    }
+
+    return NextResponse.json(
+      { requiresVerification: true, email: data.email.toLowerCase() },
+      { status: 201 }
+    );
   } catch (err) {
     if (err instanceof z.ZodError) {
       return NextResponse.json({ error: err.errors[0].message }, { status: 400 });

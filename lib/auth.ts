@@ -43,6 +43,16 @@ export const authOptions: NextAuthOptions = {
           throw new Error("Неверный пароль");
         }
 
+        // Auto-verify legacy accounts (created before email verification was added)
+        if (!user.isEmailVerified && !user.emailVerifyToken) {
+          await prisma.user.update({
+            where: { id: user.id },
+            data: { isEmailVerified: true },
+          });
+        } else if (!user.isEmailVerified) {
+          throw new Error("EMAIL_NOT_VERIFIED");
+        }
+
         return {
           id: user.id,
           email: user.email,
@@ -58,9 +68,10 @@ export const authOptions: NextAuthOptions = {
         token.id = user.id;
         const dbUser = await prisma.user.findUnique({
           where: { id: user.id },
-          select: { isAdmin: true },
+          select: { isAdmin: true, isEmailVerified: true },
         });
         token.isAdmin = dbUser?.isAdmin ?? false;
+        token.isEmailVerified = dbUser?.isEmailVerified ?? false;
       }
       return token;
     },
@@ -68,6 +79,7 @@ export const authOptions: NextAuthOptions = {
       if (token?.id) {
         session.user.id = token.id as string;
         session.user.isAdmin = (token.isAdmin as boolean) ?? false;
+        session.user.isEmailVerified = (token.isEmailVerified as boolean) ?? false;
       }
       return session;
     },
