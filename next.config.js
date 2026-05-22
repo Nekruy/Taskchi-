@@ -1,7 +1,7 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   experimental: {
-    serverComponentsExternalPackages: ['pdfkit', 'socket.io'],
+    serverComponentsExternalPackages: ['pdfkit', 'socket.io', 'nodemailer'],
   },
   images: {
     domains: ['avatars.githubusercontent.com', 'lh3.googleusercontent.com'],
