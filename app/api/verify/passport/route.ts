@@ -38,20 +38,25 @@ export async function POST(req: NextRequest) {
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const formData = await req.formData();
-  const file = formData.get("passportPhoto") as File | null;
+  const passportFile = formData.get("passportPhoto") as File | null;
+  const selfieFile   = formData.get("selfiePhoto")   as File | null;
 
-  if (!file) {
-    return NextResponse.json({ error: "Загрузите фото паспорта" }, { status: 400 });
+  if (!passportFile || !selfieFile) {
+    return NextResponse.json({ error: "Загрузите оба фото" }, { status: 400 });
   }
 
-  const url = await uploadToCloudinary(file, "passports");
-  if (!url) {
+  const [passportUrl, selfieUrl] = await Promise.all([
+    uploadToCloudinary(passportFile, "passports"),
+    uploadToCloudinary(selfieFile,   "passports"),
+  ]);
+
+  if (!passportUrl || !selfieUrl) {
     return NextResponse.json({ error: "Ошибка загрузки фото" }, { status: 500 });
   }
 
   const user = await prisma.user.update({
     where: { id: session.user.id },
-    data: { passportPhoto: url, passportStatus: "PENDING" },
+    data: { passportPhoto: passportUrl, selfiePhoto: selfieUrl, passportStatus: "PENDING" },
     select: { name: true, email: true },
   });
 

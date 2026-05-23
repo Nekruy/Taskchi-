@@ -3,38 +3,68 @@
 import { useState } from "react";
 import Link from "next/link";
 
-export default function PassportVerifyPage() {
-  const [file, setFile] = useState<File | null>(null);
-  const [preview, setPreview] = useState<string | null>(null);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
-  const [done, setDone] = useState(false);
+function UploadField({
+  label, preview, onChange,
+}: {
+  label: string;
+  preview: string | null;
+  onChange: (f: File) => void;
+}) {
+  return (
+    <div>
+      <label className="block text-sm font-semibold text-gray-700 mb-2">
+        {label} <span className="text-red-500">*</span>
+      </label>
+      <label className="flex flex-col items-center justify-center w-full h-36 border-2 border-dashed border-gray-300 rounded-xl cursor-pointer hover:border-[#14A800] transition-colors bg-gray-50 hover:bg-green-50">
+        {preview ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img src={preview} alt="Предпросмотр" className="h-full w-full object-contain rounded-xl p-1" />
+        ) : (
+          <div className="text-center p-4">
+            <div className="text-2xl mb-1">📄</div>
+            <p className="text-sm text-gray-500">Нажмите для выбора</p>
+            <p className="text-xs text-gray-400 mt-0.5">JPG, PNG до 10 МБ</p>
+          </div>
+        )}
+        <input
+          type="file"
+          accept="image/*"
+          className="hidden"
+          onChange={(e) => { const f = e.target.files?.[0]; if (f) onChange(f); }}
+        />
+      </label>
+    </div>
+  );
+}
 
-  function handleFile(e: React.ChangeEvent<HTMLInputElement>) {
-    const f = e.target.files?.[0] ?? null;
-    setFile(f);
-    if (f) setPreview(URL.createObjectURL(f));
-  }
+export default function PassportVerifyPage() {
+  const [passport, setPassport] = useState<File | null>(null);
+  const [selfie,   setSelfie]   = useState<File | null>(null);
+  const [previewPassport, setPreviewPassport] = useState<string | null>(null);
+  const [previewSelfie,   setPreviewSelfie]   = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [error,   setError]   = useState("");
+  const [done,    setDone]    = useState(false);
+
+  function pickPassport(f: File) { setPassport(f); setPreviewPassport(URL.createObjectURL(f)); }
+  function pickSelfie(f: File)   { setSelfie(f);   setPreviewSelfie(URL.createObjectURL(f)); }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    if (!file) { setError("Выберите фото паспорта"); return; }
+    if (!passport) { setError("Загрузите лицевую сторону паспорта"); return; }
+    if (!selfie)   { setError("Загрузите страницу с пропиской или селфи с паспортом"); return; }
     setError("");
     setLoading(true);
 
     try {
       const fd = new FormData();
-      fd.append("passportPhoto", file);
+      fd.append("passportPhoto", passport);
+      fd.append("selfiePhoto",   selfie);
 
       const res = await fetch("/api/verify/passport", { method: "POST", body: fd });
       const data = await res.json();
 
-      if (!res.ok) {
-        setError(data.error || "Ошибка загрузки");
-        setLoading(false);
-        return;
-      }
-
+      if (!res.ok) { setError(data.error || "Ошибка загрузки"); setLoading(false); return; }
       setDone(true);
     } catch {
       setError("Ошибка соединения с сервером");
@@ -59,11 +89,9 @@ export default function PassportVerifyPage() {
             <div className="text-center py-6">
               <div className="text-5xl mb-4">✅</div>
               <h2 className="text-lg font-bold text-gray-900 mb-2">Паспорт отправлен на проверку</h2>
-              <p className="text-gray-500 text-sm mb-6">
-                Мы уведомим вас в течение 24 часов.
-              </p>
-              <Link href="/dashboard" className="btn-primary justify-center py-3 inline-flex">
-                Перейти в личный кабинет
+              <p className="text-gray-500 text-sm mb-6">Мы уведомим вас в течение 24 часов.</p>
+              <Link href="/executor" className="btn-primary justify-center py-3 inline-flex">
+                Перейти в панель исполнителя
               </Link>
             </div>
           ) : (
@@ -78,31 +106,24 @@ export default function PassportVerifyPage() {
               )}
 
               <div className="bg-blue-50 border border-blue-200 rounded-xl px-4 py-3 text-sm text-blue-700">
-                📋 Сфотографируйте разворот паспорта с фотографией. Убедитесь, что текст чёткий и хорошо читается.
+                📋 Оба фото обязательны. Убедитесь, что текст чёткий и хорошо читается.
               </div>
 
-              <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-2">
-                  Фото паспорта (лицевая сторона) <span className="text-red-500">*</span>
-                </label>
-                <label className="flex flex-col items-center justify-center w-full h-40 border-2 border-dashed border-gray-300 rounded-xl cursor-pointer hover:border-[#14A800] transition-colors bg-gray-50 hover:bg-green-50">
-                  {preview ? (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img src={preview} alt="Предпросмотр" className="h-full w-full object-contain rounded-xl p-1" />
-                  ) : (
-                    <div className="text-center p-4">
-                      <div className="text-3xl mb-2">📄</div>
-                      <p className="text-sm text-gray-500">Нажмите для выбора фото</p>
-                      <p className="text-xs text-gray-400 mt-1">JPG, PNG до 10 МБ</p>
-                    </div>
-                  )}
-                  <input type="file" accept="image/*" onChange={handleFile} className="hidden" />
-                </label>
-              </div>
+              <UploadField
+                label="Лицевая сторона паспорта"
+                preview={previewPassport}
+                onChange={pickPassport}
+              />
+
+              <UploadField
+                label="Страница с пропиской или селфи с паспортом"
+                preview={previewSelfie}
+                onChange={pickSelfie}
+              />
 
               <button
                 type="submit"
-                disabled={loading || !file}
+                disabled={loading || !passport || !selfie}
                 className="btn-primary w-full justify-center py-3 text-base"
               >
                 {loading ? (

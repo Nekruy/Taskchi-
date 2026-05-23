@@ -61,7 +61,12 @@ export default function RegisterPage() {
         });
         router.push("/onboarding/executor");
       } else {
-        router.push("/login");
+        await signIn("credentials", {
+          email: form.email.toLowerCase(),
+          password: form.password,
+          redirect: false,
+        });
+        router.push("/onboarding/customer");
       }
     } catch {
       setError("Ошибка соединения с сервером");

@@ -93,6 +93,7 @@ model User {
   workArea          String?
   about             String?
   passportPhoto     String?
+  selfiePhoto       String?
   passportStatus    String    @default("NONE")
   passportNote      String?
   isAvailable       Boolean   @default(false)

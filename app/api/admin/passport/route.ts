@@ -22,6 +22,7 @@ export async function GET(req: NextRequest) {
       email: true,
       phone: true,
       passportPhoto: true,
+      selfiePhoto: true,
       passportStatus: true,
       passportNote: true,
       createdAt: true,

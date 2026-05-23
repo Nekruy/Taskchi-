@@ -110,7 +110,7 @@ export function Navbar() {
                     </div>
 
                     {[
-                      { href: "/dashboard",               icon: "📊", label: "Дашборд" },
+                      { href: session.user.role === "EXECUTOR" ? "/executor" : "/customer", icon: "📊", label: "Личный кабинет" },
                       { href: `/profile/${session.user.id}`, icon: "👤", label: "Мой профиль" },
                       { href: "/tasks/create",            icon: "✍️", label: "Создать поручение" },
                     ].map((item) => (
@@ -194,7 +194,7 @@ export function Navbar() {
                 + Создать поручение
               </Link>
               <div className="grid grid-cols-2 gap-2">
-                <Link href="/dashboard"             className="flex items-center gap-2 py-2.5 px-3 text-gray-700 font-medium hover:bg-gray-50 rounded-xl text-sm" onClick={() => setMenuOpen(false)}>📊 Дашборд</Link>
+                <Link href={session.user.role === "EXECUTOR" ? "/executor" : "/customer"} className="flex items-center gap-2 py-2.5 px-3 text-gray-700 font-medium hover:bg-gray-50 rounded-xl text-sm" onClick={() => setMenuOpen(false)}>📊 Кабинет</Link>
                 <Link href={`/profile/${session.user.id}`} className="flex items-center gap-2 py-2.5 px-3 text-gray-700 font-medium hover:bg-gray-50 rounded-xl text-sm" onClick={() => setMenuOpen(false)}>👤 Профиль</Link>
               </div>
               <button onClick={() => { signOut({ callbackUrl: "/" }); setMenuOpen(false); }}

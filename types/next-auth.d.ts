@@ -10,6 +10,7 @@ declare module "next-auth" {
       image?: string | null;
       isAdmin?: boolean;
       isEmailVerified?: boolean;
+      role?: string;
     };
   }
 }
@@ -19,5 +20,6 @@ declare module "next-auth/jwt" {
     id?: string;
     isAdmin?: boolean;
     isEmailVerified?: boolean;
+    role?: string;
   }
 }

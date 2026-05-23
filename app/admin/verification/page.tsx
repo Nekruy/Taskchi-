@@ -10,6 +10,7 @@ interface ExecutorRow {
   email: string;
   phone: string | null;
   passportPhoto: string | null;
+  selfiePhoto: string | null;
   passportStatus: PassportStatus;
   passportNote: string | null;
   createdAt: string;
@@ -139,28 +140,35 @@ export default function AdminVerificationPage() {
                 </div>
               </div>
 
-              {/* Passport photo */}
-              <div className="mb-4">
-                {row.passportPhoto ? (
-                  <button
-                    onClick={() => setPhotoModal(row.passportPhoto!)}
-                    className="relative group rounded-xl overflow-hidden border border-gray-100 hover:border-[#14A800] transition-colors w-48"
-                  >
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img src={row.passportPhoto} alt="Паспорт" className="w-full h-32 object-cover" />
-                    <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-all flex items-center justify-center">
-                      <span className="opacity-0 group-hover:opacity-100 text-white text-xs font-semibold bg-black/50 px-2 py-1 rounded-lg">
-                        🔍 Открыть
-                      </span>
+              {/* Photos */}
+              <div className="grid grid-cols-2 gap-3 mb-4">
+                {[
+                  { url: row.passportPhoto, label: "Лицевая сторона" },
+                  { url: row.selfiePhoto,   label: "Прописка / Селфи" },
+                ].map(({ url, label }) =>
+                  url ? (
+                    <button
+                      key={label}
+                      onClick={() => setPhotoModal(url)}
+                      className="relative group rounded-xl overflow-hidden border border-gray-100 hover:border-[#14A800] transition-colors"
+                    >
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img src={url} alt={label} className="w-full h-32 object-cover" />
+                      <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-all flex items-center justify-center">
+                        <span className="opacity-0 group-hover:opacity-100 text-white text-xs font-semibold bg-black/50 px-2 py-1 rounded-lg">
+                          🔍 Открыть
+                        </span>
+                      </div>
+                      <div className="absolute bottom-2 left-2 text-xs bg-black/50 text-white px-2 py-0.5 rounded-full">
+                        {label}
+                      </div>
+                    </button>
+                  ) : (
+                    <div key={label} className="h-32 rounded-xl bg-gray-100 flex items-center justify-center text-gray-400 text-sm flex-col gap-1">
+                      <span>📷</span>
+                      <span className="text-xs">{label}</span>
                     </div>
-                    <div className="absolute bottom-2 left-2 text-xs bg-black/50 text-white px-2 py-0.5 rounded-full">
-                      Паспорт
-                    </div>
-                  </button>
-                ) : (
-                  <div className="h-32 w-48 rounded-xl bg-gray-100 flex items-center justify-center text-gray-400 text-sm">
-                    Нет фото
-                  </div>
+                  )
                 )}
               </div>
 

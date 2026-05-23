@@ -58,10 +58,11 @@ export const authOptions: NextAuthOptions = {
         token.id = user.id;
         const dbUser = await prisma.user.findUnique({
           where: { id: user.id },
-          select: { isAdmin: true, isEmailVerified: true },
+          select: { isAdmin: true, isEmailVerified: true, role: true },
         });
         token.isAdmin = dbUser?.isAdmin ?? false;
         token.isEmailVerified = dbUser?.isEmailVerified ?? false;
+        token.role = dbUser?.role ?? "CUSTOMER";
       }
       return token;
     },
@@ -70,6 +71,7 @@ export const authOptions: NextAuthOptions = {
         session.user.id = token.id as string;
         session.user.isAdmin = (token.isAdmin as boolean) ?? false;
         session.user.isEmailVerified = (token.isEmailVerified as boolean) ?? false;
+        session.user.role = (token.role as string) ?? "CUSTOMER";
       }
       return session;
     },
