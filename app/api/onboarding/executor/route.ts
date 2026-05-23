@@ -1,8 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getServerSession } from "next-auth";
+import { getToken } from "next-auth/jwt";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
-import { authOptions } from "@/lib/auth";
 
 const Schema = z.object({
   skills: z.array(z.string()).min(1, "Выберите хотя бы одну категорию"),
@@ -11,14 +10,14 @@ const Schema = z.object({
 });
 
 export async function POST(req: NextRequest) {
-  const session = await getServerSession(authOptions);
-  if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const token = await getToken({ req });
+  if (!token) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   try {
     const data = Schema.parse(await req.json());
 
     await prisma.user.update({
-      where: { id: session.user.id },
+      where: { id: token.id as string },
       data: {
         skills: data.skills,
         workArea: data.workArea,

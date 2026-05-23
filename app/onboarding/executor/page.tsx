@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { useSession } from "next-auth/react";
 
 const SKILLS = [
   { value: "CHILDREN",  label: "Дети",          icon: "🧒" },
@@ -22,6 +23,7 @@ const DISTRICTS = [
 
 export default function ExecutorOnboardingPage() {
   const router = useRouter();
+  const { status } = useSession();
   const [step, setStep] = useState(1);
   const [skills, setSkills] = useState<string[]>([]);
   const [workArea, setWorkArea] = useState("");
@@ -50,11 +52,19 @@ export default function ExecutorOnboardingPage() {
         setLoading(false);
         return;
       }
-      router.push("/verify/passport");
+      router.push("/executor");
     } catch {
       setError("Ошибка соединения с сервером");
       setLoading(false);
     }
+  }
+
+  if (status === "loading") {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="animate-spin w-8 h-8 border-2 border-[#14A800] border-t-transparent rounded-full" />
+      </div>
+    );
   }
 
   return (
