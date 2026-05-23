@@ -22,6 +22,18 @@ export async function POST(req: NextRequest) {
     const body = await req.json();
     const { taskId, price, message } = CreateOfferSchema.parse(body);
 
+    const executorUser = await prisma.user.findUnique({
+      where: { id: session.user.id },
+      select: { role: true, passportStatus: true },
+    });
+
+    if (executorUser?.role === "EXECUTOR" && executorUser.passportStatus !== "APPROVED") {
+      return NextResponse.json(
+        { error: "Необходима верификация паспорта для отклика на задачи" },
+        { status: 403 }
+      );
+    }
+
     const task = await prisma.task.findUnique({
       where: { id: taskId },
       include: {

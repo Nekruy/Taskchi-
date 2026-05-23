@@ -87,7 +87,14 @@ model User {
   isChildVerified   Boolean   @default(false)
   isBanned          Boolean   @default(false)
   isAdmin           Boolean   @default(false)
-  city            String   @default("Душанбе")
+  city              String    @default("Душанбе")
+  role              String    @default("CUSTOMER")
+  skills            String[]  @default([])
+  workArea          String?
+  about             String?
+  passportPhoto     String?
+  passportStatus    String    @default("NONE")
+  passportNote      String?
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
 

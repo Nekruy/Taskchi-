@@ -11,6 +11,7 @@ const CITIES = [
 
 export default function RegisterPage() {
   const router = useRouter();
+  const [role, setRole] = useState<"CUSTOMER" | "EXECUTOR" | null>(null);
   const [form, setForm] = useState({
     name: "",
     email: "",
@@ -40,7 +41,7 @@ export default function RegisterPage() {
       const res = await fetch("/api/auth/register", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(form),
+        body: JSON.stringify({ ...form, role: role ?? "CUSTOMER" }),
       });
 
       const data = await res.json();
@@ -51,11 +52,60 @@ export default function RegisterPage() {
         return;
       }
 
-      router.push("/login");
+      router.push(data.role === "EXECUTOR" ? "/onboarding/executor" : "/login");
     } catch {
       setError("Ошибка соединения с сервером");
       setLoading(false);
     }
+  }
+
+  if (!role) {
+    return (
+      <div className="min-h-[calc(100vh-4rem)] bg-gray-50 flex items-center justify-center px-4 py-12">
+        <div className="w-full max-w-md">
+          <div className="text-center mb-8">
+            <Link href="/" className="inline-flex items-center gap-2 mb-4">
+              <span className="text-3xl">🎯</span>
+              <span className="font-extrabold text-2xl text-gradient">Taskchi</span>
+            </Link>
+            <h1 className="text-2xl font-bold text-gray-900">Кто вы?</h1>
+            <p className="text-gray-500 mt-1.5 text-sm">Выберите роль для регистрации</p>
+          </div>
+          <div className="grid grid-cols-2 gap-4">
+            <button
+              onClick={() => setRole("CUSTOMER")}
+              className="flex flex-col items-center gap-3 bg-white border-2 border-gray-200 hover:border-[#14A800] rounded-2xl p-6 text-center transition-all group"
+            >
+              <div className="w-14 h-14 bg-blue-50 group-hover:bg-green-50 rounded-2xl flex items-center justify-center text-3xl transition-colors">
+                👤
+              </div>
+              <div>
+                <div className="font-bold text-gray-900 text-base">Я заказчик</div>
+                <div className="text-xs text-gray-500 mt-1 leading-snug">Размещаю задачи и нахожу исполнителей</div>
+              </div>
+            </button>
+            <button
+              onClick={() => setRole("EXECUTOR")}
+              className="flex flex-col items-center gap-3 bg-white border-2 border-gray-200 hover:border-[#14A800] rounded-2xl p-6 text-center transition-all group"
+            >
+              <div className="w-14 h-14 bg-orange-50 group-hover:bg-green-50 rounded-2xl flex items-center justify-center text-3xl transition-colors">
+                💼
+              </div>
+              <div>
+                <div className="font-bold text-gray-900 text-base">Я исполнитель</div>
+                <div className="text-xs text-gray-500 mt-1 leading-snug">Выполняю задачи и зарабатываю деньги</div>
+              </div>
+            </button>
+          </div>
+          <div className="mt-6 text-center text-sm text-gray-500">
+            Уже есть аккаунт?{" "}
+            <Link href="/login" className="text-[#14A800] hover:text-[#0d8c00] font-semibold">
+              Войти
+            </Link>
+          </div>
+        </div>
+      </div>
+    );
   }
 
   return (

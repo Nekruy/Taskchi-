@@ -2,17 +2,17 @@
 
 import { useEffect, useState } from "react";
 
-type VerifStatus = "PENDING" | "APPROVED" | "REJECTED";
+type PassportStatus = "PENDING" | "APPROVED" | "REJECTED";
 
-interface VerifItem {
+interface ExecutorRow {
   id: string;
-  status: VerifStatus;
-  type: string;
+  name: string;
+  email: string;
+  phone: string | null;
   passportPhoto: string | null;
-  selfiePhoto: string | null;
-  adminNote: string | null;
+  passportStatus: PassportStatus;
+  passportNote: string | null;
   createdAt: string;
-  user: { id: string; name: string; phone: string | null; email: string };
 }
 
 function PhotoModal({ url, onClose }: { url: string; onClose: () => void }) {
@@ -24,7 +24,7 @@ function PhotoModal({ url, onClose }: { url: string; onClose: () => void }) {
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img
         src={url}
-        alt="Документ"
+        alt="Паспорт"
         className="max-w-full max-h-[90vh] rounded-xl object-contain"
         onClick={(e) => e.stopPropagation()}
       />
@@ -38,16 +38,24 @@ function PhotoModal({ url, onClose }: { url: string; onClose: () => void }) {
   );
 }
 
-const STATUS_TABS: { key: string; label: string }[] = [
-  { key: "", label: "Все" },
-  { key: "PENDING", label: "На проверке" },
+const TABS: { key: string; label: string }[] = [
+  { key: "PENDING",  label: "Ожидают" },
   { key: "APPROVED", label: "Одобрены" },
   { key: "REJECTED", label: "Отклонены" },
 ];
 
+const STATUS_STYLE: Record<PassportStatus, string> = {
+  PENDING:  "bg-amber-100 text-amber-700",
+  APPROVED: "bg-green-100 text-green-700",
+  REJECTED: "bg-red-100 text-red-700",
+};
+const STATUS_LABEL: Record<PassportStatus, string> = {
+  PENDING: "Ожидает", APPROVED: "Одобрен", REJECTED: "Отклонён",
+};
+
 export default function AdminVerificationPage() {
-  const [tab, setTab] = useState("");
-  const [items, setItems] = useState<VerifItem[]>([]);
+  const [tab, setTab] = useState<string>("PENDING");
+  const [rows, setRows] = useState<ExecutorRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [photoModal, setPhotoModal] = useState<string | null>(null);
   const [noteMap, setNoteMap] = useState<Record<string, string>>({});
@@ -55,9 +63,9 @@ export default function AdminVerificationPage() {
 
   async function load() {
     setLoading(true);
-    const res = await fetch(`/api/admin/verification${tab ? `?status=${tab}` : ""}`);
+    const res = await fetch(`/api/admin/passport?status=${tab}`);
     const data = await res.json();
-    setItems(data.verifications ?? []);
+    setRows(data.users ?? []);
     setLoading(false);
   }
 
@@ -65,7 +73,7 @@ export default function AdminVerificationPage() {
 
   async function action(id: string, act: "approve" | "reject") {
     setActioning(id);
-    await fetch(`/api/admin/verification/${id}`, {
+    await fetch(`/api/admin/passport/${id}`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ action: act, adminNote: noteMap[id] || "" }),
@@ -73,16 +81,6 @@ export default function AdminVerificationPage() {
     await load();
     setActioning(null);
   }
-
-  const statusBadge = (s: VerifStatus) => {
-    const m = {
-      PENDING: "bg-amber-100 text-amber-700",
-      APPROVED: "bg-green-100 text-green-700",
-      REJECTED: "bg-red-100 text-red-700",
-    };
-    const l = { PENDING: "На проверке", APPROVED: "Одобрена", REJECTED: "Отклонена" };
-    return <span className={`px-2 py-0.5 rounded-full text-xs font-semibold ${m[s]}`}>{l[s]}</span>;
-  };
 
   return (
     <div className="p-6 max-w-5xl">
@@ -92,7 +90,7 @@ export default function AdminVerificationPage() {
 
       {/* Tabs */}
       <div className="flex gap-2 mb-6">
-        {STATUS_TABS.map((t) => (
+        {TABS.map((t) => (
           <button
             key={t.key}
             onClick={() => setTab(t.key)}
@@ -111,43 +109,45 @@ export default function AdminVerificationPage() {
         <div className="flex items-center justify-center py-20">
           <div className="animate-spin w-8 h-8 border-2 border-[#14A800] border-t-transparent rounded-full" />
         </div>
-      ) : items.length === 0 ? (
+      ) : rows.length === 0 ? (
         <div className="text-center py-20 text-gray-400">
           <div className="text-4xl mb-3">📋</div>
           <p>Заявок не найдено</p>
         </div>
       ) : (
         <div className="space-y-4">
-          {items.map((item) => (
-            <div key={item.id} className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
+          {rows.map((row) => (
+            <div key={row.id} className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
               <div className="flex items-start justify-between gap-4 mb-4">
                 <div>
                   <div className="flex items-center gap-2 mb-1">
-                    <span className="font-bold text-gray-900">{item.user.name}</span>
-                    {statusBadge(item.status)}
-                    <span className="text-xs bg-blue-50 text-blue-600 px-2 py-0.5 rounded-full font-semibold">
-                      {item.type === "CHILDREN" ? "👶 Детские задачи" : "Базовая"}
+                    <span className="font-bold text-gray-900">{row.name}</span>
+                    <span className={`px-2 py-0.5 rounded-full text-xs font-semibold ${STATUS_STYLE[row.passportStatus]}`}>
+                      {STATUS_LABEL[row.passportStatus]}
                     </span>
                   </div>
                   <div className="text-sm text-gray-500 space-x-3">
-                    {item.user.phone && <span>📱 {item.user.phone}</span>}
-                    <span>✉️ {item.user.email}</span>
+                    {row.phone && <span>📱 {row.phone}</span>}
+                    <span>✉️ {row.email}</span>
                   </div>
                   <div className="text-xs text-gray-400 mt-1">
-                    Подано: {new Date(item.createdAt).toLocaleDateString("ru-RU", { day: "numeric", month: "long", year: "numeric", hour: "2-digit", minute: "2-digit" })}
+                    Подано: {new Date(row.createdAt).toLocaleDateString("ru-RU", {
+                      day: "numeric", month: "long", year: "numeric",
+                      hour: "2-digit", minute: "2-digit",
+                    })}
                   </div>
                 </div>
               </div>
 
-              {/* Photos */}
-              <div className="grid grid-cols-2 gap-3 mb-4">
-                {item.passportPhoto ? (
+              {/* Passport photo */}
+              <div className="mb-4">
+                {row.passportPhoto ? (
                   <button
-                    onClick={() => setPhotoModal(item.passportPhoto!)}
-                    className="relative group rounded-xl overflow-hidden border border-gray-100 hover:border-[#14A800] transition-colors"
+                    onClick={() => setPhotoModal(row.passportPhoto!)}
+                    className="relative group rounded-xl overflow-hidden border border-gray-100 hover:border-[#14A800] transition-colors w-48"
                   >
                     {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img src={item.passportPhoto} alt="Паспорт" className="w-full h-32 object-cover" />
+                    <img src={row.passportPhoto} alt="Паспорт" className="w-full h-32 object-cover" />
                     <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-all flex items-center justify-center">
                       <span className="opacity-0 group-hover:opacity-100 text-white text-xs font-semibold bg-black/50 px-2 py-1 rounded-lg">
                         🔍 Открыть
@@ -158,67 +158,45 @@ export default function AdminVerificationPage() {
                     </div>
                   </button>
                 ) : (
-                  <div className="h-32 rounded-xl bg-gray-100 flex items-center justify-center text-gray-400 text-sm">
-                    Нет фото паспорта
-                  </div>
-                )}
-
-                {item.selfiePhoto ? (
-                  <button
-                    onClick={() => setPhotoModal(item.selfiePhoto!)}
-                    className="relative group rounded-xl overflow-hidden border border-gray-100 hover:border-[#14A800] transition-colors"
-                  >
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img src={item.selfiePhoto} alt="Селфи" className="w-full h-32 object-cover" />
-                    <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-all flex items-center justify-center">
-                      <span className="opacity-0 group-hover:opacity-100 text-white text-xs font-semibold bg-black/50 px-2 py-1 rounded-lg">
-                        🔍 Открыть
-                      </span>
-                    </div>
-                    <div className="absolute bottom-2 left-2 text-xs bg-black/50 text-white px-2 py-0.5 rounded-full">
-                      Селфи
-                    </div>
-                  </button>
-                ) : (
-                  <div className="h-32 rounded-xl bg-gray-100 flex items-center justify-center text-gray-400 text-sm">
-                    Нет селфи
+                  <div className="h-32 w-48 rounded-xl bg-gray-100 flex items-center justify-center text-gray-400 text-sm">
+                    Нет фото
                   </div>
                 )}
               </div>
 
-              {/* Note + actions */}
-              {item.status === "PENDING" && (
+              {/* Actions */}
+              {row.passportStatus === "PENDING" && (
                 <div className="border-t border-gray-100 pt-4">
                   <input
                     type="text"
-                    placeholder="Комментарий при отклонении (необязательно)"
-                    value={noteMap[item.id] || ""}
-                    onChange={(e) => setNoteMap((p) => ({ ...p, [item.id]: e.target.value }))}
+                    placeholder="Причина отклонения (необязательно)"
+                    value={noteMap[row.id] || ""}
+                    onChange={(e) => setNoteMap((p) => ({ ...p, [row.id]: e.target.value }))}
                     className="input-field text-sm mb-3"
                   />
                   <div className="flex gap-3">
                     <button
-                      onClick={() => action(item.id, "approve")}
-                      disabled={actioning === item.id}
+                      onClick={() => action(row.id, "approve")}
+                      disabled={actioning === row.id}
                       className="flex-1 py-2.5 bg-[#14A800] hover:bg-[#0d8c00] text-white rounded-xl text-sm font-bold transition-colors"
                     >
-                      {actioning === item.id ? "..." : "✓ Одобрить"}
+                      {actioning === row.id ? "..." : "✓ Одобрить"}
                     </button>
                     <button
-                      onClick={() => action(item.id, "reject")}
-                      disabled={actioning === item.id}
+                      onClick={() => action(row.id, "reject")}
+                      disabled={actioning === row.id}
                       className="flex-1 py-2.5 bg-red-500 hover:bg-red-600 text-white rounded-xl text-sm font-bold transition-colors"
                     >
-                      {actioning === item.id ? "..." : "✗ Отклонить"}
+                      {actioning === row.id ? "..." : "✗ Отклонить"}
                     </button>
                   </div>
                 </div>
               )}
 
-              {item.status !== "PENDING" && item.adminNote && (
+              {row.passportStatus !== "PENDING" && row.passportNote && (
                 <div className="border-t border-gray-100 pt-3 mt-3">
                   <p className="text-sm text-gray-500">
-                    <strong>Комментарий:</strong> {item.adminNote}
+                    <strong>Комментарий:</strong> {row.passportNote}
                   </p>
                 </div>
               )}

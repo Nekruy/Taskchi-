@@ -10,6 +10,7 @@ const RegisterSchema = z.object({
   password: z.string().min(6, "Пароль минимум 6 символов"),
   phone: z.string().min(9, "Введите номер телефона"),
   city: z.string().optional(),
+  role: z.enum(["CUSTOMER", "EXECUTOR"]).default("CUSTOMER"),
 });
 
 export async function POST(req: NextRequest) {
@@ -37,12 +38,13 @@ export async function POST(req: NextRequest) {
         passwordHash,
         phone: data.phone,
         city: data.city || "Душанбе",
+        role: data.role,
         isEmailVerified: true,
         emailVerified: new Date(),
       },
     });
 
-    return NextResponse.json({ success: true }, { status: 201 });
+    return NextResponse.json({ success: true, role: data.role }, { status: 201 });
   } catch (err) {
     if (err instanceof z.ZodError) {
       return NextResponse.json({ error: err.errors[0].message }, { status: 400 });
