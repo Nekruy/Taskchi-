@@ -17,7 +17,7 @@ const DISTRICTS = [
   "Сино",
   "Фирдавси",
   "Шохмансур",
-  "Темурмалик",
+  "Весь Душанбе (все районы)",
 ];
 
 export default function ExecutorOnboardingPage() {

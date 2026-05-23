@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import { signIn } from "next-auth/react";
 
 const CITIES = [
   "Душанбе", "Худжанд", "Бохтар", "Кӯлоб", "Исфара",
@@ -52,7 +53,16 @@ export default function RegisterPage() {
         return;
       }
 
-      router.push(data.role === "EXECUTOR" ? "/onboarding/executor" : "/login");
+      if (data.role === "EXECUTOR") {
+        await signIn("credentials", {
+          email: form.email.toLowerCase(),
+          password: form.password,
+          redirect: false,
+        });
+        router.push("/onboarding/executor");
+      } else {
+        router.push("/login");
+      }
     } catch {
       setError("Ошибка соединения с сервером");
       setLoading(false);
