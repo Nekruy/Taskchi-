@@ -51,7 +51,7 @@ export default function RegisterPage() {
         return;
       }
 
-      router.push(`/verify-email?email=${encodeURIComponent(form.email)}`);
+      router.push("/login");
     } catch {
       setError("Ошибка соединения с сервером");
       setLoading(false);
@@ -153,7 +153,7 @@ export default function RegisterPage() {
             {/* Phone */}
             <div>
               <label className="block text-sm font-semibold text-gray-700 mb-1.5">
-                Телефон
+                Телефон <span className="text-red-500">*</span>
               </label>
               <div className="relative">
                 <div className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">
@@ -167,6 +167,7 @@ export default function RegisterPage() {
                   onChange={(e) => update("phone", e.target.value)}
                   placeholder="+992 XX XXX XXXX"
                   className="input-field pl-10"
+                  required
                 />
               </div>
             </div>

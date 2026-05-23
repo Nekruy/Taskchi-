@@ -43,16 +43,6 @@ export const authOptions: NextAuthOptions = {
           throw new Error("Неверный пароль");
         }
 
-        // Auto-verify legacy accounts (created before email verification was added)
-        if (!user.isEmailVerified && !user.emailVerifyToken) {
-          await prisma.user.update({
-            where: { id: user.id },
-            data: { isEmailVerified: true },
-          });
-        } else if (!user.isEmailVerified) {
-          throw new Error("EMAIL_NOT_VERIFIED");
-        }
-
         return {
           id: user.id,
           email: user.email,
