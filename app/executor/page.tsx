@@ -1,9 +1,11 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useSession } from "next-auth/react";
 import { useRouter, usePathname } from "next/navigation";
 import Link from "next/link";
+
+// ─── Constants ────────────────────────────────────────────────────────────────
 
 const CATEGORY_ICONS: Record<string, string> = {
   CHILDREN: "🧒", SHOPPING: "🛒", DELIVERY: "🚗",
@@ -11,11 +13,13 @@ const CATEGORY_ICONS: Record<string, string> = {
 };
 
 const NAV = [
-  { href: "/executor",              icon: "📋", label: "Задачи" },
-  { href: "/executor/earnings",     icon: "💰", label: "Заработок" },
-  { href: "/executor/notifications",icon: "🔔", label: "Уведомления" },
-  { href: "/profile",               icon: "👤", label: "Профиль" },
+  { href: "/executor",               icon: "📋", label: "Задачи" },
+  { href: "/executor/earnings",      icon: "💰", label: "Заработок" },
+  { href: "/executor/notifications", icon: "🔔", label: "Уведомления" },
+  { href: "/profile",                icon: "👤", label: "Профиль" },
 ];
+
+// ─── Types ────────────────────────────────────────────────────────────────────
 
 type UserInfo = {
   id: string; name: string;
@@ -23,6 +27,8 @@ type UserInfo = {
   rating: number; reviewCount: number;
   workArea: string | null; city: string;
   isAvailable: boolean; skills: string[];
+  headline: string | null; about: string | null;
+  createdAt: string;
 };
 type TaskRow = {
   id: string; title: string; budget: number; status: string;
@@ -35,6 +41,8 @@ type AvailableTask = {
 };
 type DashData = { user: UserInfo; activeTasks: TaskRow[]; completedTasks: TaskRow[]; earned: number };
 
+// ─── Sub-components ───────────────────────────────────────────────────────────
+
 function StatCard({ label, value }: { label: string; value: string | number }) {
   return (
     <div className="bg-white rounded-2xl border border-gray-100 p-4">
@@ -43,6 +51,24 @@ function StatCard({ label, value }: { label: string; value: string | number }) {
     </div>
   );
 }
+
+function Toast({ message, onClose }: { message: string; onClose: () => void }) {
+  useEffect(() => {
+    const t = setTimeout(onClose, 4000);
+    return () => clearTimeout(t);
+  }, [onClose]);
+  return (
+    <div className="fixed top-4 left-1/2 -translate-x-1/2 z-50 animate-fade-in">
+      <div className="bg-green-600 text-white px-5 py-3 rounded-2xl shadow-lg flex items-center gap-3 text-sm font-semibold max-w-xs text-center">
+        <span className="text-xl">🎉</span>
+        <span>{message}</span>
+        <button onClick={onClose} className="ml-2 opacity-70 hover:opacity-100 text-lg leading-none">×</button>
+      </div>
+    </div>
+  );
+}
+
+// ─── Main component ───────────────────────────────────────────────────────────
 
 export default function ExecutorDashboardPage() {
   const { status } = useSession();
@@ -54,6 +80,18 @@ export default function ExecutorDashboardPage() {
   const [loading, setLoading] = useState(true);
   const [taskTab, setTaskTab] = useState<"active" | "done">("active");
   const [toggling, setToggling] = useState(false);
+
+  // Resume editing
+  const [editingHeadline, setEditingHeadline] = useState(false);
+  const [headlineDraft, setHeadlineDraft] = useState("");
+  const [savingHeadline, setSavingHeadline] = useState(false);
+  const [editingAbout, setEditingAbout] = useState(false);
+  const [aboutDraft, setAboutDraft] = useState("");
+  const [savingAbout, setSavingAbout] = useState(false);
+  const headlineInputRef = useRef<HTMLInputElement>(null);
+
+  // Toast for new portfolio item
+  const [toast, setToast] = useState(false);
 
   useEffect(() => {
     if (status === "unauthenticated") router.replace("/login");
@@ -68,8 +106,27 @@ export default function ExecutorDashboardPage() {
       setData(dash);
       setAvailable(tasks.tasks ?? []);
       setLoading(false);
+
+      // Portfolio toast: show if completedTasks count increased since last visit
+      const prevCount = parseInt(
+        typeof window !== "undefined"
+          ? localStorage.getItem("tc_done_count") ?? "0"
+          : "0"
+      );
+      const newCount = (dash.completedTasks ?? []).length;
+      if (newCount > prevCount && prevCount >= 0) {
+        setToast(true);
+      }
+      if (typeof window !== "undefined") {
+        localStorage.setItem("tc_done_count", String(newCount));
+      }
     });
   }, [status]);
+
+  // Focus headline input when editing starts
+  useEffect(() => {
+    if (editingHeadline) headlineInputRef.current?.focus();
+  }, [editingHeadline]);
 
   async function toggleAvailability() {
     if (!data || toggling) return;
@@ -84,6 +141,52 @@ export default function ExecutorDashboardPage() {
     setToggling(false);
   }
 
+  async function saveHeadline() {
+    if (!data) return;
+    setSavingHeadline(true);
+    const res = await fetch("/api/executor/profile", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ headline: headlineDraft }),
+    });
+    if (res.ok) {
+      const { user } = await res.json();
+      setData((d) => d ? { ...d, user: { ...d.user, headline: user.headline } } : d);
+      setEditingHeadline(false);
+    }
+    setSavingHeadline(false);
+  }
+
+  async function saveAbout() {
+    if (!data) return;
+    setSavingAbout(true);
+    const res = await fetch("/api/executor/profile", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ about: aboutDraft }),
+    });
+    if (res.ok) {
+      const { user } = await res.json();
+      setData((d) => d ? { ...d, user: { ...d.user, about: user.about } } : d);
+      setEditingAbout(false);
+    }
+    setSavingAbout(false);
+  }
+
+  function startEditHeadline() {
+    if (!data) return;
+    setHeadlineDraft(data.user.headline ?? "");
+    setEditingHeadline(true);
+  }
+
+  function startEditAbout() {
+    if (!data) return;
+    setAboutDraft(data.user.about ?? "");
+    setEditingAbout(true);
+  }
+
+  // ─── Loading / guard ────────────────────────────────────────────────────────
+
   if (status === "loading" || loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
@@ -91,8 +194,8 @@ export default function ExecutorDashboardPage() {
       </div>
     );
   }
-
   if (!data) return null;
+
   const { user, activeTasks, completedTasks, earned } = data;
   const isApproved = user.passportStatus === "APPROVED";
 
@@ -105,8 +208,26 @@ export default function ExecutorDashboardPage() {
 
   const shownTasks = taskTab === "active" ? activeTasks : completedTasks;
 
+  // ─── Resume progress ─────────────────────────────────────────────────────────
+  const progressSteps = [
+    { done: isApproved, label: "Паспорт проверен" },
+    { done: Boolean(user.headline), label: "Заголовок заполнен" },
+    { done: Boolean(user.about), label: "О себе заполнено" },
+    { done: user.skills.length > 0, label: "Навыки выбраны" },
+    { done: completedTasks.length >= 1, label: "Первая задача выполнена" },
+  ];
+  const resumePct = progressSteps.filter((s) => s.done).length * 20;
+
   return (
     <div className="min-h-screen bg-gray-50 pb-24">
+      {/* Toast */}
+      {toast && (
+        <Toast
+          message="Новая задача в портфолио! Ваш профиль стал сильнее"
+          onClose={() => setToast(false)}
+        />
+      )}
+
       {/* Header */}
       <div className="bg-white border-b border-gray-100 px-4 py-4 sticky top-0 z-10">
         <h1 className="text-xl font-bold text-gray-900">Панель исполнителя</h1>
@@ -158,6 +279,142 @@ export default function ExecutorDashboardPage() {
           <StatCard label="Заработано" value={`${earned.toLocaleString()} сом`} />
           <StatCard label="Рейтинг" value={`⭐ ${user.rating.toFixed(1)}`} />
           <StatCard label="Отзывы" value={user.reviewCount} />
+        </div>
+
+        {/* ══ MY RESUME ════════════════════════════════════════════════════════ */}
+        <div className="bg-white rounded-2xl border border-gray-100 p-5">
+          <div className="flex items-center justify-between mb-1">
+            <h2 className="text-base font-bold text-gray-900">Моё резюме</h2>
+            <Link
+              href={`/profile/${user.id}`}
+              target="_blank"
+              className="text-xs text-[#14A800] font-semibold hover:underline"
+            >
+              Открыть публичный профиль ↗
+            </Link>
+          </div>
+
+          {/* Progress bar */}
+          <div className="mb-5">
+            <div className="flex items-center justify-between mb-1.5 text-xs text-gray-500">
+              <span>Готовность резюме</span>
+              <span className="font-bold text-gray-700">{resumePct}%</span>
+            </div>
+            <div className="h-2.5 bg-gray-100 rounded-full overflow-hidden">
+              <div
+                className="h-full bg-[#14A800] rounded-full transition-all duration-500"
+                style={{ width: `${resumePct}%` }}
+              />
+            </div>
+            {resumePct < 100 && (
+              <div className="flex flex-wrap gap-2 mt-2">
+                {progressSteps.filter((s) => !s.done).map((s) => (
+                  <span key={s.label} className="text-xs text-gray-400 bg-gray-100 px-2 py-0.5 rounded-full">
+                    +20% {s.label}
+                  </span>
+                ))}
+              </div>
+            )}
+          </div>
+
+          <div className="space-y-4">
+            {/* Headline */}
+            <div>
+              <div className="flex items-center justify-between mb-1">
+                <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Заголовок</label>
+                {!editingHeadline && (
+                  <button
+                    onClick={startEditHeadline}
+                    className="text-xs text-gray-400 hover:text-[#14A800] transition-colors"
+                    title="Редактировать"
+                  >
+                    ✏️ Изменить
+                  </button>
+                )}
+              </div>
+              {editingHeadline ? (
+                <div className="flex gap-2">
+                  <input
+                    ref={headlineInputRef}
+                    value={headlineDraft}
+                    onChange={(e) => setHeadlineDraft(e.target.value.slice(0, 120))}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") saveHeadline();
+                      if (e.key === "Escape") setEditingHeadline(false);
+                    }}
+                    placeholder="Курьер и помощник в Душанбе"
+                    className="flex-1 text-sm border border-gray-200 rounded-xl px-3 py-2 focus:outline-none focus:border-[#14A800] focus:ring-1 focus:ring-[#14A800]"
+                    maxLength={120}
+                  />
+                  <button
+                    onClick={saveHeadline}
+                    disabled={savingHeadline}
+                    className="px-3 py-2 bg-[#14A800] text-white rounded-xl text-sm font-semibold hover:bg-[#0d8c00] transition-colors disabled:opacity-60"
+                  >
+                    {savingHeadline ? "..." : "✓"}
+                  </button>
+                  <button
+                    onClick={() => setEditingHeadline(false)}
+                    className="px-3 py-2 border border-gray-200 rounded-xl text-sm text-gray-600 hover:bg-gray-50"
+                  >
+                    ✕
+                  </button>
+                </div>
+              ) : (
+                <p className="text-sm text-gray-700 min-h-[1.5rem]">
+                  {user.headline || <span className="text-gray-400 italic">Не заполнено — добавьте краткий заголовок</span>}
+                </p>
+              )}
+            </div>
+
+            {/* About */}
+            <div>
+              <div className="flex items-center justify-between mb-1">
+                <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide">О себе</label>
+                {!editingAbout && (
+                  <button
+                    onClick={startEditAbout}
+                    className="text-xs text-gray-400 hover:text-[#14A800] transition-colors"
+                  >
+                    ✏️ Изменить
+                  </button>
+                )}
+              </div>
+              {editingAbout ? (
+                <div className="space-y-2">
+                  <textarea
+                    value={aboutDraft}
+                    onChange={(e) => setAboutDraft(e.target.value.slice(0, 500))}
+                    placeholder="Расскажите о своём опыте, преимуществах, подходе к работе..."
+                    className="w-full text-sm border border-gray-200 rounded-xl px-3 py-2 focus:outline-none focus:border-[#14A800] focus:ring-1 focus:ring-[#14A800] resize-none h-28"
+                    maxLength={500}
+                  />
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs text-gray-400">{aboutDraft.length}/500</span>
+                    <div className="flex gap-2">
+                      <button
+                        onClick={() => setEditingAbout(false)}
+                        className="px-3 py-1.5 border border-gray-200 rounded-xl text-xs text-gray-600 hover:bg-gray-50"
+                      >
+                        Отмена
+                      </button>
+                      <button
+                        onClick={saveAbout}
+                        disabled={savingAbout}
+                        className="px-4 py-1.5 bg-[#14A800] text-white rounded-xl text-xs font-semibold hover:bg-[#0d8c00] disabled:opacity-60"
+                      >
+                        {savingAbout ? "Сохранение..." : "Сохранить"}
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <p className="text-sm text-gray-700 leading-relaxed min-h-[1.5rem]">
+                  {user.about || <span className="text-gray-400 italic">Не заполнено — расскажите о своём опыте</span>}
+                </p>
+              )}
+            </div>
+          </div>
         </div>
 
         {/* C) Availability toggle */}

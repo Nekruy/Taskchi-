@@ -48,6 +48,10 @@ export async function GET(
 }
 
 // PATCH /api/tasks/[id]
+// Portfolio automation: when status → DONE, the executor's portfolio automatically
+// reflects this task because the portfolio is a live query of
+//   prisma.task.findMany({ where: { executorId, status: "DONE" } })
+// No extra table is needed.
 export async function PATCH(
   req: NextRequest,
   { params }: { params: { id: string } }
@@ -62,14 +66,22 @@ export async function PATCH(
     return NextResponse.json({ error: "Задача не найдена" }, { status: 404 });
   }
 
-  if (task.creatorId !== session.user.id) {
+  // Only creator OR assigned executor may update
+  const isCreator = task.creatorId === session.user.id;
+  const isExecutor = task.executorId === session.user.id;
+  if (!isCreator && !isExecutor) {
     return NextResponse.json({ error: "Нет доступа" }, { status: 403 });
   }
 
   const body = await req.json();
-  const allowedFields = ["title", "description", "budget", "address", "deadline", "status"];
-  const updateData: Record<string, unknown> = {};
 
+  // Executors may only transition status (e.g., mark IN_PROGRESS → REVIEW)
+  // Creators may update all allowed fields including status → DONE
+  const allowedFields = isCreator
+    ? ["title", "description", "budget", "address", "deadline", "status"]
+    : ["status"];
+
+  const updateData: Record<string, unknown> = {};
   for (const field of allowedFields) {
     if (body[field] !== undefined) {
       updateData[field] = field === "deadline" ? new Date(body[field]) : body[field];

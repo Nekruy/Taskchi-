@@ -22,6 +22,9 @@ export async function GET(req: NextRequest) {
         city: true,
         isAvailable: true,
         skills: true,
+        headline: true,
+        about: true,
+        createdAt: true,
       },
     }),
     prisma.task.findMany({

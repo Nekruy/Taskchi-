@@ -1,304 +1,387 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
 import { Session } from "next-auth";
 import Link from "next/link";
 
-function VerificationBadge({ isVerified, isChildVerified, pendingVerification }: {
+// ─── Constants ────────────────────────────────────────────────────────────────
+
+const CATEGORY_ICONS: Record<string, string> = {
+  CHILDREN: "🧒", SHOPPING: "🛒", DELIVERY: "🚗",
+  QUEUE: "⏰", HOUSEHOLD: "🏠", ONLINE: "💻",
+};
+const CATEGORY_LABELS: Record<string, string> = {
+  CHILDREN: "Дети", SHOPPING: "Покупки", DELIVERY: "Доставка",
+  QUEUE: "Очередь", HOUSEHOLD: "Дом", ONLINE: "Онлайн",
+};
+const SKILL_LABELS: Record<string, string> = {
+  CHILDREN: "Дети", SHOPPING: "Покупки", DELIVERY: "Доставка",
+  QUEUE: "Очередь", HOUSEHOLD: "Дом и ремонт", ONLINE: "IT и онлайн",
+};
+
+// ─── Types ────────────────────────────────────────────────────────────────────
+
+interface UserProfile {
+  id: string;
+  name: string;
+  avatar?: string | null;
+  bio?: string | null;
+  about?: string | null;
+  headline?: string | null;
+  city: string;
+  rating: number;
+  reviewCount: number;
   isVerified: boolean;
   isChildVerified: boolean;
-  pendingVerification: boolean;
-}) {
-  if (isVerified && isChildVerified) {
-    return (
-      <div className="flex flex-wrap gap-1.5 justify-center mt-2">
-        <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-green-100 text-green-700 rounded-full text-xs font-semibold">
-          ✓ Верифицирован
-        </span>
-        <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-blue-100 text-blue-700 rounded-full text-xs font-semibold">
-          👶 Детские задачи
-        </span>
-      </div>
-    );
-  }
-  if (isVerified) {
-    return (
-      <div className="flex justify-center mt-2">
-        <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-green-100 text-green-700 rounded-full text-xs font-semibold">
-          ✓ Верифицирован
-        </span>
-      </div>
-    );
-  }
-  if (pendingVerification) {
-    return (
-      <div className="flex justify-center mt-2">
-        <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-amber-100 text-amber-700 rounded-full text-xs font-semibold">
-          ⏳ На проверке
-        </span>
-      </div>
-    );
-  }
+  createdAt: Date | string;
+  phone?: string | null;
+  telegramHandle?: string | null;
+  role: string;
+  skills: string[];
+  workArea?: string | null;
+  passportStatus: string;
+  verification?: { status: string } | null;
+  tasksExecuted: Array<{
+    id: string;
+    title: string;
+    category: string;
+    budget: number;
+    updatedAt: Date | string;
+  }>;
+  reviewsReceived: Array<{
+    id: string;
+    rating: number;
+    comment?: string | null;
+    taskId: string;
+    createdAt: Date | string;
+    giver: { id: string; name: string; avatar?: string | null };
+  }>;
+}
+
+interface ProfileClientProps {
+  user: UserProfile;
+  session: Session | null;
+}
+
+// ─── Sub-components ───────────────────────────────────────────────────────────
+
+function StarBar({ rating, count, total }: { rating: number; count: number; total: number }) {
+  const pct = total > 0 ? Math.round((count / total) * 100) : 0;
   return (
-    <div className="flex justify-center mt-2">
-      <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-gray-100 text-gray-500 rounded-full text-xs font-medium">
-        Не верифицирован
-      </span>
+    <div className="flex items-center gap-2 text-sm">
+      <span className="text-amber-400 font-semibold shrink-0 w-6 text-right">{rating}★</span>
+      <div className="flex-1 h-2 bg-gray-100 rounded-full overflow-hidden">
+        <div className="h-full bg-amber-400 rounded-full transition-all" style={{ width: `${pct}%` }} />
+      </div>
+      <span className="text-gray-400 shrink-0 w-5 text-right text-xs">{count}</span>
     </div>
   );
 }
 
-interface ProfileClientProps {
-  user: {
-    id: string;
-    name: string;
-    avatar?: string | null;
-    bio?: string | null;
-    city: string;
-    rating: number;
-    reviewCount: number;
-    isVerified: boolean;
-    isChildVerified: boolean;
-    createdAt: Date | string;
-    phone?: string | null;
-    telegramHandle?: string | null;
-    verification?: { status: string } | null;
-    tasksCreated: Array<{ id: string; title: string; budget: number; createdAt: Date | string }>;
-    tasksExecuted: Array<{ id: string; title: string; budget: number; createdAt: Date | string }>;
-    reviewsReceived: Array<{
-      id: string;
-      rating: number;
-      comment?: string | null;
-      createdAt: Date | string;
-      giver: { id: string; name: string; avatar?: string | null };
-    }>;
-  };
-  session: Session | null;
+function Avatar({ src, name, size = "lg" }: { src?: string | null; name: string; size?: "sm" | "lg" }) {
+  const cls = size === "lg"
+    ? "w-20 h-20 text-3xl rounded-2xl"
+    : "w-9 h-9 text-sm rounded-full";
+  return (
+    <div className={`${cls} bg-green-100 flex items-center justify-center text-[#14A800] font-bold shrink-0 overflow-hidden`}>
+      {src
+        // eslint-disable-next-line @next/next/no-img-element
+        ? <img src={src} alt={name} className="w-full h-full object-cover" />
+        : name[0]?.toUpperCase()
+      }
+    </div>
+  );
 }
 
+// ─── Main component ───────────────────────────────────────────────────────────
+
 export function ProfileClient({ user, session }: ProfileClientProps) {
-  const router = useRouter();
-  const isOwn = session?.user.id === user.id;
-  const [editing, setEditing] = useState(false);
-  const [form, setForm] = useState({
-    name: user.name,
-    bio: user.bio || "",
-    city: user.city,
-    phone: user.phone || "",
-    telegramHandle: user.telegramHandle || "",
-  });
-  const [saving, setSaving] = useState(false);
-  const [error, setError] = useState("");
+  const isOwn = session?.user?.id === user.id;
+  const viewerRole = (session?.user as { role?: string } | null)?.role;
+  const isCustomer = viewerRole === "CUSTOMER";
+  const [copied, setCopied] = useState(false);
 
-  function update(field: string, value: string) {
-    setForm((prev) => ({ ...prev, [field]: value }));
-  }
+  const stars = [1, 2, 3, 4, 5];
+  const isVerifiedByPassport = user.passportStatus === "APPROVED";
 
-  async function saveProfile() {
-    setSaving(true);
-    setError("");
+  // Build review lookup: taskId → review (so portfolio cards can show their review)
+  const reviewByTaskId = new Map(user.reviewsReceived.map((r) => [r.taskId, r]));
+
+  // Rating breakdown
+  const ratingBreakdown = [5, 4, 3, 2, 1].map((r) => ({
+    rating: r,
+    count: user.reviewsReceived.filter((rev) => rev.rating === r).length,
+  }));
+
+  // About text: prefer `about` (executor-specific), fall back to `bio`
+  const aboutText = user.about || user.bio;
+
+  async function shareProfile() {
+    const url = `https://taskchi-production.up.railway.app/profile/${user.id}`;
     try {
-      const res = await fetch(`/api/profile/${user.id}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(form),
-      });
-      if (!res.ok) {
-        const data = await res.json();
-        setError(data.error);
-        return;
-      }
-      setEditing(false);
-      router.refresh();
-    } finally {
-      setSaving(false);
+      await navigator.clipboard.writeText(url);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch {
+      window.prompt("Скопируйте ссылку:", url);
     }
   }
 
-  const stars = Array.from({ length: 5 }, (_, i) => i + 1);
-
   return (
-    <div className="max-w-4xl mx-auto px-4 py-8">
-      <div className="grid md:grid-cols-3 gap-6">
-        {/* Profile card */}
-        <div className="md:col-span-1 space-y-4">
-          <div className="card text-center">
-            {/* Avatar */}
-            <div className="w-20 h-20 rounded-full bg-green-100 flex items-center justify-center text-[#14A800] text-3xl font-bold mx-auto mb-3">
-              {user.avatar ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img src={user.avatar} alt={user.name} className="w-full h-full object-cover rounded-full" />
-              ) : (
-                user.name[0]?.toUpperCase()
+    <div className="max-w-3xl mx-auto px-4 py-6 space-y-5">
+
+      {/* ══ HERO CARD ══════════════════════════════════════════════════════════ */}
+      <div className="bg-white rounded-2xl border border-gray-100 p-6 shadow-sm">
+        <div className="flex items-start gap-4">
+          <Avatar src={user.avatar} name={user.name} size="lg" />
+
+          <div className="flex-1 min-w-0">
+            {/* Name + verified badge */}
+            <div className="flex items-start justify-between gap-2 flex-wrap">
+              <div>
+                <h1 className="text-xl font-bold text-gray-900">{user.name}</h1>
+                {user.headline && (
+                  <p className="text-sm text-gray-600 mt-0.5">{user.headline}</p>
+                )}
+              </div>
+              {isVerifiedByPassport && (
+                <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-green-100 text-green-700 rounded-full text-xs font-semibold shrink-0">
+                  ✓ Верифицирован
+                </span>
               )}
             </div>
 
-            <h1 className="text-xl font-bold text-slate-800 mb-1">{user.name}</h1>
+            {/* Meta: city, workArea, memberSince */}
+            <div className="flex flex-wrap items-center gap-x-4 gap-y-1 mt-2 text-sm text-gray-500">
+              <span>📍 {user.city}</span>
+              {user.workArea && <span>🗺 {user.workArea}</span>}
+              <span>
+                📅 С {new Date(user.createdAt).toLocaleDateString("ru-RU", {
+                  month: "long", year: "numeric",
+                })}
+              </span>
+            </div>
 
-            <VerificationBadge
-              isVerified={user.isVerified}
-              isChildVerified={user.isChildVerified}
-              pendingVerification={user.verification?.status === "PENDING"}
-            />
-
-            <div className="text-slate-500 text-sm mt-2">📍 {user.city}</div>
-
-            {user.rating > 0 && (
-              <div className="flex items-center justify-center gap-1 mt-2">
-                {stars.map((s) => (
-                  <span key={s} className={s <= Math.round(user.rating) ? "text-amber-400" : "text-slate-300"}>
-                    ★
+            {/* Skills tags */}
+            {user.skills.length > 0 && (
+              <div className="flex flex-wrap gap-1.5 mt-3">
+                {user.skills.map((skill) => (
+                  <span
+                    key={skill}
+                    className="inline-flex items-center gap-1 px-2.5 py-1 bg-gray-100 text-gray-700 rounded-full text-xs font-semibold"
+                  >
+                    {CATEGORY_ICONS[skill] ?? "🔧"} {SKILL_LABELS[skill] ?? skill}
                   </span>
                 ))}
-                <span className="text-sm text-slate-600 ml-1">
-                  {user.rating.toFixed(1)} ({user.reviewCount})
-                </span>
               </div>
             )}
-
-            <div className="mt-3 pt-3 border-t border-slate-100 text-xs text-slate-400">
-              На Taskchi с {new Date(user.createdAt).toLocaleDateString("ru-RU", { month: "long", year: "numeric" })}
-            </div>
-
-            {user.telegramHandle && (
-              <a
-                href={`https://t.me/${user.telegramHandle}`}
-                target="_blank"
-                className="mt-3 flex items-center justify-center gap-1.5 text-blue-500 hover:text-blue-600 text-sm"
-              >
-                <span>💬</span> @{user.telegramHandle}
-              </a>
-            )}
-
-            {isOwn && (
-              <div className="mt-4 space-y-2">
-                <button
-                  onClick={() => setEditing(!editing)}
-                  className="btn-secondary text-sm w-full"
-                >
-                  {editing ? "Отмена" : "✏️ Редактировать"}
-                </button>
-                {!user.isVerified && user.verification?.status !== "PENDING" && (
-                  <Link
-                    href="/verify/phone"
-                    className="block text-center text-sm w-full py-2 px-3 bg-[#14A800] text-white rounded-xl font-semibold hover:bg-[#0d8c00] transition-colors"
-                  >
-                    🛡️ Пройти верификацию
-                  </Link>
-                )}
-                {user.verification?.status === "PENDING" && (
-                  <Link
-                    href="/verify/status"
-                    className="block text-center text-sm w-full py-2 px-3 bg-amber-50 text-amber-700 border border-amber-200 rounded-xl font-semibold hover:bg-amber-100 transition-colors"
-                  >
-                    ⏳ Статус верификации
-                  </Link>
-                )}
-              </div>
-            )}
-          </div>
-
-          {/* Stats */}
-          <div className="card">
-            <div className="space-y-3">
-              <div className="flex justify-between text-sm">
-                <span className="text-slate-500">Задач создано</span>
-                <span className="font-semibold">{user.tasksCreated.length}</span>
-              </div>
-              <div className="flex justify-between text-sm">
-                <span className="text-slate-500">Задач выполнено</span>
-                <span className="font-semibold">{user.tasksExecuted.length}</span>
-              </div>
-              <div className="flex justify-between text-sm">
-                <span className="text-slate-500">Отзывов</span>
-                <span className="font-semibold">{user.reviewCount}</span>
-              </div>
-            </div>
           </div>
         </div>
 
-        {/* Main content */}
-        <div className="md:col-span-2 space-y-5">
-          {/* Edit form */}
-          {isOwn && editing && (
-            <div className="card">
-              <h2 className="font-semibold text-slate-800 mb-4">Редактировать профиль</h2>
-              {error && (
-                <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-xl text-sm mb-4">{error}</div>
-              )}
-              <div className="space-y-4">
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-1.5">Имя</label>
-                  <input value={form.name} onChange={(e) => update("name", e.target.value)} className="input-field" />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-1.5">О себе</label>
-                  <textarea value={form.bio} onChange={(e) => update("bio", e.target.value)} className="input-field resize-none h-24" placeholder="Расскажите о себе..." />
-                </div>
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium text-slate-700 mb-1.5">Телефон</label>
-                    <input value={form.phone} onChange={(e) => update("phone", e.target.value)} className="input-field" placeholder="+992..." />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-slate-700 mb-1.5">Telegram</label>
-                    <input value={form.telegramHandle} onChange={(e) => update("telegramHandle", e.target.value)} className="input-field" placeholder="username" />
-                  </div>
-                </div>
-                <button onClick={saveProfile} disabled={saving} className="btn-primary w-full">
-                  {saving ? "Сохранение..." : "Сохранить"}
-                </button>
-              </div>
-            </div>
+        {/* About text */}
+        {aboutText && (
+          <p className="mt-4 text-sm text-gray-600 leading-relaxed border-t border-gray-100 pt-4">
+            {aboutText}
+          </p>
+        )}
+
+        {/* Action buttons */}
+        <div className="flex flex-wrap gap-2 mt-4 pt-4 border-t border-gray-100">
+          <button
+            onClick={shareProfile}
+            className="flex items-center gap-2 px-4 py-2 border border-gray-200 rounded-xl text-sm font-semibold text-gray-700 hover:bg-gray-50 transition-colors"
+          >
+            {copied ? "✅ Скопировано!" : "🔗 Поделиться резюме"}
+          </button>
+
+          {/* "Написать" only for logged-in customers viewing someone else's profile */}
+          {session && isCustomer && !isOwn && (
+            <Link
+              href={`/tasks/create`}
+              className="flex items-center gap-2 px-4 py-2 bg-[#14A800] text-white rounded-xl text-sm font-semibold hover:bg-[#0d8c00] transition-colors"
+            >
+              ✉️ Написать
+            </Link>
           )}
 
-          {/* Bio */}
-          {user.bio && !editing && (
-            <div className="card">
-              <h2 className="font-semibold text-slate-800 mb-2">О себе</h2>
-              <p className="text-slate-600 text-sm leading-relaxed">{user.bio}</p>
-            </div>
+          {isOwn && (
+            <Link
+              href="/executor"
+              className="flex items-center gap-2 px-4 py-2 border border-gray-200 rounded-xl text-sm font-semibold text-gray-600 hover:bg-gray-50 transition-colors"
+            >
+              ✏️ Редактировать резюме
+            </Link>
           )}
 
-          {/* Reviews */}
-          <div className="card">
-            <h2 className="font-semibold text-slate-800 mb-4">
-              Отзывы ({user.reviewCount})
-            </h2>
-            {user.reviewsReceived.length > 0 ? (
-              <div className="space-y-4">
-                {user.reviewsReceived.map((review) => (
-                  <div key={review.id} className="pb-4 border-b border-slate-100 last:border-0 last:pb-0">
-                    <div className="flex items-center gap-2 mb-2">
-                      <div className="w-8 h-8 rounded-full bg-green-100 flex items-center justify-center text-[#14A800] text-sm font-bold">
-                        {review.giver.name[0]}
+          {user.telegramHandle && (
+            <a
+              href={`https://t.me/${user.telegramHandle}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center gap-2 px-4 py-2 border border-blue-200 rounded-xl text-sm font-semibold text-blue-600 hover:bg-blue-50 transition-colors"
+            >
+              💬 Telegram
+            </a>
+          )}
+        </div>
+      </div>
+
+      {/* ══ STATS BAR ══════════════════════════════════════════════════════════ */}
+      <div className="grid grid-cols-3 gap-3">
+        <div className="bg-white rounded-2xl border border-gray-100 p-4 text-center shadow-sm">
+          <p className="text-2xl font-bold text-gray-900">{user.tasksExecuted.length}</p>
+          <p className="text-xs text-gray-500 mt-1 leading-tight">Выполнено задач</p>
+        </div>
+        <div className="bg-white rounded-2xl border border-gray-100 p-4 text-center shadow-sm">
+          <div className="flex items-center justify-center gap-0.5">
+            <span className="text-amber-400 text-lg leading-none">★</span>
+            <span className="text-2xl font-bold text-gray-900">
+              {user.rating > 0 ? user.rating.toFixed(1) : "—"}
+            </span>
+          </div>
+          <p className="text-xs text-gray-500 mt-1">Рейтинг</p>
+        </div>
+        <div className="bg-white rounded-2xl border border-gray-100 p-4 text-center shadow-sm">
+          <p className="text-2xl font-bold text-gray-900">{user.reviewCount}</p>
+          <p className="text-xs text-gray-500 mt-1">Отзывов</p>
+        </div>
+      </div>
+
+      {/* ══ PORTFOLIO ══════════════════════════════════════════════════════════ */}
+      <div className="bg-white rounded-2xl border border-gray-100 p-5 shadow-sm">
+        <h2 className="text-lg font-bold text-gray-900 mb-4">Выполненные задачи</h2>
+
+        {user.tasksExecuted.length === 0 ? (
+          <div className="text-center py-10 text-gray-400 text-sm">
+            <p className="text-3xl mb-2">📋</p>
+            Пока нет выполненных задач
+          </div>
+        ) : (
+          <div className="grid sm:grid-cols-2 gap-3">
+            {user.tasksExecuted.map((task) => {
+              const review = reviewByTaskId.get(task.id);
+              return (
+                <Link
+                  key={task.id}
+                  href={`/tasks/${task.id}`}
+                  className="block border border-gray-100 rounded-xl p-4 hover:border-[#14A800] hover:shadow-sm transition-all"
+                >
+                  {/* Category */}
+                  <div className="flex items-center gap-1.5 mb-2">
+                    <span className="text-lg leading-none">{CATEGORY_ICONS[task.category] ?? "📋"}</span>
+                    <span className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
+                      {CATEGORY_LABELS[task.category] ?? task.category}
+                    </span>
+                  </div>
+
+                  {/* Title */}
+                  <p className="font-semibold text-gray-900 text-sm mb-1 line-clamp-2 leading-snug">
+                    {task.title}
+                  </p>
+
+                  {/* Budget */}
+                  <p className="text-[#14A800] font-bold text-sm">
+                    {task.budget.toLocaleString("ru-RU")} сом
+                  </p>
+
+                  {/* Review */}
+                  {review && (
+                    <div className="border-t border-gray-100 pt-2.5 mt-2.5 space-y-1">
+                      <div className="flex items-center gap-0.5">
+                        {stars.map((s) => (
+                          <span key={s} className={`text-xs ${s <= review.rating ? "text-amber-400" : "text-gray-200"}`}>★</span>
+                        ))}
+                        <span className="text-xs text-gray-400 ml-1">{review.rating}/5</span>
                       </div>
-                      <div>
-                        <Link href={`/profile/${review.giver.id}`} className="text-sm font-medium text-slate-800 hover:text-[#14A800]">
-                          {review.giver.name}
-                        </Link>
-                        <div className="flex">
-                          {stars.map((s) => (
-                            <span key={s} className={`text-sm ${s <= review.rating ? "text-amber-400" : "text-slate-300"}`}>★</span>
-                          ))}
-                        </div>
-                      </div>
-                      <div className="ml-auto text-xs text-slate-400">
-                        {new Date(review.createdAt).toLocaleDateString("ru-RU")}
-                      </div>
+                      {review.comment && (
+                        <p className="text-xs text-gray-500 line-clamp-2 leading-relaxed">
+                          {review.comment}
+                        </p>
+                      )}
                     </div>
-                    {review.comment && <p className="text-sm text-slate-600 ml-10">{review.comment}</p>}
-                  </div>
+                  )}
+
+                  {/* Date */}
+                  <p className="text-xs text-gray-400 mt-2">
+                    {new Date(task.updatedAt).toLocaleDateString("ru-RU", {
+                      day: "numeric", month: "short", year: "numeric",
+                    })}
+                  </p>
+                </Link>
+              );
+            })}
+          </div>
+        )}
+      </div>
+
+      {/* ══ REVIEWS ════════════════════════════════════════════════════════════ */}
+      <div className="bg-white rounded-2xl border border-gray-100 p-5 shadow-sm">
+        <h2 className="text-lg font-bold text-gray-900 mb-4">
+          Отзывы ({user.reviewCount})
+        </h2>
+
+        {user.reviewsReceived.length > 0 && (
+          <div className="flex gap-6 mb-6 pb-5 border-b border-gray-100">
+            {/* Average score */}
+            <div className="text-center shrink-0">
+              <p className="text-4xl font-bold text-gray-900">{user.rating.toFixed(1)}</p>
+              <div className="flex justify-center gap-0.5 my-1.5">
+                {stars.map((s) => (
+                  <span key={s} className={`text-base ${s <= Math.round(user.rating) ? "text-amber-400" : "text-gray-200"}`}>★</span>
                 ))}
               </div>
-            ) : (
-              <div className="text-center py-6 text-slate-400 text-sm">
-                Пока нет отзывов
-              </div>
-            )}
+              <p className="text-xs text-gray-400">{user.reviewCount} отзывов</p>
+            </div>
+
+            {/* Star breakdown bars */}
+            <div className="flex-1 space-y-1.5 justify-center flex flex-col">
+              {ratingBreakdown.map(({ rating, count }) => (
+                <StarBar key={rating} rating={rating} count={count} total={user.reviewCount} />
+              ))}
+            </div>
           </div>
-        </div>
+        )}
+
+        {user.reviewsReceived.length > 0 ? (
+          <div className="space-y-4">
+            {user.reviewsReceived.map((review) => (
+              <div key={review.id} className="pb-4 border-b border-gray-100 last:border-0 last:pb-0">
+                <div className="flex items-start gap-2.5">
+                  <Avatar src={review.giver.avatar} name={review.giver.name} size="sm" />
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center justify-between gap-2">
+                      <Link
+                        href={`/profile/${review.giver.id}`}
+                        className="text-sm font-semibold text-gray-800 hover:text-[#14A800]"
+                      >
+                        {review.giver.name}
+                      </Link>
+                      <span className="text-xs text-gray-400 shrink-0">
+                        {new Date(review.createdAt).toLocaleDateString("ru-RU", {
+                          day: "numeric", month: "short",
+                        })}
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-0.5 mt-0.5 mb-1">
+                      {stars.map((s) => (
+                        <span key={s} className={`text-xs ${s <= review.rating ? "text-amber-400" : "text-gray-200"}`}>★</span>
+                      ))}
+                      <span className="text-xs text-gray-400 ml-1">{review.rating}/5</span>
+                    </div>
+                    {review.comment && (
+                      <p className="text-sm text-gray-600 leading-relaxed">{review.comment}</p>
+                    )}
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div className="text-center py-8 text-gray-400 text-sm">
+            <p className="text-3xl mb-2">💬</p>
+            Пока нет отзывов
+          </div>
+        )}
       </div>
     </div>
   );
