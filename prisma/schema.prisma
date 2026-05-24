@@ -96,6 +96,7 @@ model User {
   selfiePhoto       String?
   passportStatus    String    @default("NONE")
   passportNote      String?
+  headline          String?
   isAvailable       Boolean   @default(false)
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt

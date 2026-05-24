@@ -27,7 +27,7 @@ type UserInfo = {
   rating: number; reviewCount: number;
   workArea: string | null; city: string;
   isAvailable: boolean; skills: string[];
-  headline?: string | null; about: string | null;
+  headline: string | null; about: string | null;
   createdAt: string;
 };
 type TaskRow = {
