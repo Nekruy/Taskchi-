@@ -11,12 +11,17 @@ datasource db {
 // ─── Enums ────────────────────────────────────────────────────────────────────
 
 enum TaskCategory {
-  CHILDREN   // Дети / Кӯдакон
+  CHILDREN   // Дети / Кӯдакон (legacy — hidden from UI)
   SHOPPING   // Покупки / Харидорӣ
   DELIVERY   // Доставка / Расонидан
   QUEUE      // Очередь / Навбат
   HOUSEHOLD  // Домашние дела / Корҳои хонагӣ
   ONLINE     // Онлайн / Интернет
+  CLEANING   // Уборка / Тозакунӣ
+  DRIVER     // Водитель / Ронанда
+  MOVING     // Переезды / Кӯчидан
+  COOKING    // Готовка / Пухтупаз
+  PHOTO      // Фото и видео / Акс ва видео
 }
 
 enum TaskStatus {
@@ -98,6 +103,16 @@ model User {
   passportNote      String?
   headline          String?
   isAvailable       Boolean   @default(false)
+  // ── New executor profile fields ────────────────────────────────
+  lastName          String?
+  gender            String?
+  birthDate         DateTime?
+  education         String?
+  educationField    String?
+  extraSkills       String[]  @default([])
+  hasCar            Boolean   @default(false)
+  workWeekends      Boolean   @default(false)
+  profession        String?
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
 

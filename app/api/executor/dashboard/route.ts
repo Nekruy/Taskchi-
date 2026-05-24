@@ -14,6 +14,7 @@ export async function GET(req: NextRequest) {
       select: {
         id: true,
         name: true,
+        avatar: true,
         passportStatus: true,
         passportNote: true,
         rating: true,
@@ -25,6 +26,16 @@ export async function GET(req: NextRequest) {
         headline: true,
         about: true,
         createdAt: true,
+        // New executor profile fields
+        lastName: true,
+        gender: true,
+        birthDate: true,
+        education: true,
+        educationField: true,
+        extraSkills: true,
+        hasCar: true,
+        workWeekends: true,
+        profession: true,
       },
     }),
     prisma.task.findMany({

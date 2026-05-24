@@ -3,6 +3,7 @@ import { unstable_noStore as noStore } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { TaskCard } from "@/components/TaskCard";
 import { StatsCounter } from "@/components/StatsCounter";
+import { CATEGORIES, PROFESSIONS } from "@/lib/categories";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -50,15 +51,6 @@ async function getTopExecutors() {
 }
 
 /* ── Static data ─────────────────────────────────────────────── */
-const CATEGORIES = [
-  { key: "CHILDREN",  emoji: "🧒", label: "Дети",      desc: "Садик, школа, секции",     gradient: "linear-gradient(135deg, #f472b6, #ec4899)" },
-  { key: "SHOPPING",  emoji: "🛒", label: "Покупки",   desc: "Магазин, Корвон, рынок",   gradient: "linear-gradient(135deg, #60a5fa, #6366f1)" },
-  { key: "DELIVERY",  emoji: "🚗", label: "Доставка",  desc: "Посылки, химчистка",       gradient: "linear-gradient(135deg, #fb923c, #f97316)" },
-  { key: "QUEUE",     emoji: "⏰", label: "Очередь",   desc: "ОВИР, банк, поликлиника",  gradient: "linear-gradient(135deg, #a78bfa, #8b5cf6)" },
-  { key: "HOUSEHOLD", emoji: "🏠", label: "Дом",       desc: "Ремонт, уборка, мебель",   gradient: "linear-gradient(135deg, #14A800, #00d4aa)" },
-  { key: "ONLINE",    emoji: "💻", label: "IT задачи", desc: "Сайт, дизайн, программа",  gradient: "linear-gradient(135deg, #64748b, #6366f1)" },
-];
-
 const TRUST = [
   { icon: "🔒", label: "Эскроу-оплата",      desc: "Деньги переходят только после подтверждения" },
   { icon: "⭐", label: "Проверенные отзывы", desc: "Рейтинг формируется из реальных сделок"       },
@@ -157,7 +149,7 @@ export default async function HomePage() {
                   "Постоять в очереди в ОВИР",
                   "Сходить в Корвон за продуктами",
                   "Сделать сайт-визитку",
-                  "Забрать посылку с почты",
+                  "Убрать квартиру после ремонта",
                 ].map((ex) => (
                   <a key={ex} href={`/tasks/create?q=${encodeURIComponent(ex)}`} className="page-example-pill">
                     {ex}
@@ -191,15 +183,15 @@ export default async function HomePage() {
               <div className="relative z-10 w-72 bg-white p-4 animate-float"
                    style={{ borderRadius: "20px", border: "1px solid #e8f5e8", boxShadow: "0 16px 48px rgba(20,168,0,.20), 0 4px 16px rgba(0,0,0,.08)" }}>
                 <div className="flex items-center gap-2 mb-2.5">
-                  <span className="w-6 h-6 bg-pink-100 rounded-full flex items-center justify-center text-sm">🧒</span>
-                  <span className="text-xs font-bold text-pink-700 bg-pink-50 border border-pink-200 px-2 py-0.5 rounded-full">Дети</span>
+                  <span className="w-6 h-6 bg-cyan-100 rounded-full flex items-center justify-center text-sm">🧹</span>
+                  <span className="text-xs font-bold text-cyan-700 bg-cyan-50 border border-cyan-200 px-2 py-0.5 rounded-full">Уборка</span>
                   <span className="ml-auto text-xs font-bold text-emerald-600 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-full">Открыта</span>
                 </div>
-                <p className="text-sm font-bold text-gray-900 mb-1 leading-tight">Забрать ребёнка из садика №15 в 17:00</p>
-                <p className="text-xs text-gray-400 mb-3">Садик в районе Сино, нужен надёжный человек</p>
+                <p className="text-sm font-bold text-gray-900 mb-1 leading-tight">Генеральная уборка 3-комнатной квартиры</p>
+                <p className="text-xs text-gray-400 mb-3">Район Шохмансур, со своим инвентарём</p>
                 <div className="flex items-center justify-between mb-3">
-                  <span className="text-xl font-extrabold price-gradient">200&thinsp;<span className="text-xs font-semibold text-gray-400">сом</span></span>
-                  <span className="text-xs text-gray-400 bg-gray-50 border border-gray-100 px-2 py-0.5 rounded-full">5 откликов</span>
+                  <span className="text-xl font-extrabold price-gradient">300&thinsp;<span className="text-xs font-semibold text-gray-400">сом</span></span>
+                  <span className="text-xs text-gray-400 bg-gray-50 border border-gray-100 px-2 py-0.5 rounded-full">4 отклика</span>
                 </div>
                 <div className="flex items-center gap-2">
                   <div className="w-6 h-6 rounded-lg flex items-center justify-center text-white font-bold text-xs"
@@ -259,8 +251,8 @@ export default async function HomePage() {
             <p className="section-subtitle">Выберите категорию или опишите задачу своими словами</p>
           </div>
 
-          {/* CSS-only hover via .page-cat-card — no JS */}
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-3">
+          {/* CSS-only hover via .page-cat-card — no JS. 10 categories, 5 per row */}
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3">
             {CATEGORIES.map((cat) => (
               <Link key={cat.key} href={`/tasks?category=${cat.key}`} className="page-cat-card">
                 <div className="w-12 h-12 mx-auto mb-3 rounded-2xl flex items-center justify-center text-2xl shadow-sm"
@@ -271,6 +263,42 @@ export default async function HomePage() {
                 <p className="text-xs text-gray-500 leading-tight">{cat.desc}</p>
               </Link>
             ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ════════════════════════ PROFESSIONS ══════════════════════════ */}
+      <section className="py-16 px-4 bg-white">
+        <div className="max-w-5xl mx-auto">
+          <div className="text-center mb-10">
+            <h2 className="section-title">Наши исполнители</h2>
+            <p className="section-subtitle">Профессионалы на все случаи жизни — рядом с вами в Душанбе</p>
+          </div>
+          <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-3">
+            {PROFESSIONS.slice(0, 6).map((prof) => (
+              <Link
+                key={prof.key}
+                href={`/tasks/create`}
+                className="page-cat-card"
+              >
+                <div
+                  className="w-12 h-12 mx-auto mb-3 rounded-2xl flex items-center justify-center text-2xl shadow-sm"
+                  style={{ background: "linear-gradient(135deg, rgba(20,168,0,.12), rgba(0,212,170,.12))" }}
+                >
+                  {prof.emoji}
+                </div>
+                <p className="font-bold text-sm text-gray-800 mb-0.5">{prof.label}</p>
+                <p className="text-xs text-gray-500 leading-tight">{prof.desc}</p>
+              </Link>
+            ))}
+          </div>
+          <div className="text-center mt-6">
+            <Link
+              href="/tasks/create"
+              className="text-[#14A800] hover:text-[#0d8c00] font-bold text-sm"
+            >
+              Найти помощника →
+            </Link>
           </div>
         </div>
       </section>

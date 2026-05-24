@@ -4,13 +4,14 @@ import { useEffect, useState, useRef } from "react";
 import { useSession } from "next-auth/react";
 import { useRouter, usePathname } from "next/navigation";
 import Link from "next/link";
+import { CATEGORY_MAP } from "@/lib/categories";
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
-const CATEGORY_ICONS: Record<string, string> = {
-  CHILDREN: "🧒", SHOPPING: "🛒", DELIVERY: "🚗",
-  QUEUE: "⏰", HOUSEHOLD: "🏠", ONLINE: "💻",
-};
+/** Thin wrapper so template stays clean */
+function categoryIcon(key: string): string {
+  return CATEGORY_MAP[key]?.emoji ?? "📋";
+}
 
 const NAV = [
   { href: "/executor",               icon: "📋", label: "Задачи" },
@@ -22,13 +23,23 @@ const NAV = [
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 type UserInfo = {
-  id: string; name: string;
+  id: string; name: string; avatar: string | null;
   passportStatus: string; passportNote: string | null;
   rating: number; reviewCount: number;
   workArea: string | null; city: string;
   isAvailable: boolean; skills: string[];
   headline: string | null; about: string | null;
   createdAt: string;
+  // New fields
+  lastName: string | null;
+  gender: string | null;
+  birthDate: string | null;
+  education: string | null;
+  educationField: string | null;
+  extraSkills: string[];
+  hasCar: boolean;
+  workWeekends: boolean;
+  profession: string | null;
 };
 type TaskRow = {
   id: string; title: string; budget: number; status: string;
@@ -208,15 +219,20 @@ export default function ExecutorDashboardPage() {
 
   const shownTasks = taskTab === "active" ? activeTasks : completedTasks;
 
-  // ─── Resume progress ─────────────────────────────────────────────────────────
+  // ─── Resume progress (10 steps × 10%) ───────────────────────────────────────
   const progressSteps = [
-    { done: isApproved, label: "Паспорт проверен" },
-    { done: Boolean(user.headline), label: "Заголовок заполнен" },
-    { done: Boolean(user.about), label: "О себе заполнено" },
-    { done: user.skills.length > 0, label: "Навыки выбраны" },
-    { done: completedTasks.length >= 1, label: "Первая задача выполнена" },
+    { done: Boolean(user.lastName),      label: "Фамилия" },
+    { done: Boolean(user.gender),        label: "Пол" },
+    { done: Boolean(user.birthDate),     label: "Дата рождения" },
+    { done: Boolean(user.education),     label: "Образование" },
+    { done: Boolean(user.profession),    label: "Профессия" },
+    { done: Boolean(user.avatar),        label: "Фото профиля" },
+    { done: Boolean(user.headline),      label: "Заголовок" },
+    { done: Boolean(user.about),         label: "О себе" },
+    { done: user.skills.length > 0,      label: "Навыки" },
+    { done: Boolean(user.workArea),      label: "Район работы" },
   ];
-  const resumePct = progressSteps.filter((s) => s.done).length * 20;
+  const resumePct = progressSteps.filter((s) => s.done).length * 10;
 
   return (
     <div className="min-h-screen bg-gray-50 pb-24">
@@ -310,7 +326,7 @@ export default function ExecutorDashboardPage() {
               <div className="flex flex-wrap gap-2 mt-2">
                 {progressSteps.filter((s) => !s.done).map((s) => (
                   <span key={s.label} className="text-xs text-gray-400 bg-gray-100 px-2 py-0.5 rounded-full">
-                    +20% {s.label}
+                    +10% {s.label}
                   </span>
                 ))}
               </div>
@@ -509,7 +525,7 @@ export default function ExecutorDashboardPage() {
                 <div className="flex items-start justify-between gap-3">
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 mb-1">
-                      <span>{CATEGORY_ICONS[task.category] ?? "📋"}</span>
+                      <span>{categoryIcon(task.category)}</span>
                       <span className="font-semibold text-gray-900 text-sm truncate">{task.title}</span>
                     </div>
                     <div className="flex flex-wrap gap-x-3 text-xs text-gray-500">

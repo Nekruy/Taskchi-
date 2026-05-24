@@ -5,15 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { useSession } from "next-auth/react";
 import Link from "next/link";
 import { Suspense } from "react";
-
-const CATEGORIES = [
-  { key: "CHILDREN", label: "Дети", emoji: "🧒", desc: "Только проверенные исполнители" },
-  { key: "SHOPPING", label: "Покупки", emoji: "🛒", desc: "Магазин, доставка" },
-  { key: "DELIVERY", label: "Доставка", emoji: "🚗", desc: "Посылки, химчистка" },
-  { key: "QUEUE", label: "Очередь", emoji: "⏰", desc: "ОВИР, банк, поликлиника" },
-  { key: "HOUSEHOLD", label: "Дом", emoji: "🏠", desc: "Ремонт, уборка" },
-  { key: "ONLINE", label: "IT задачи", emoji: "💻", desc: "Сайт, дизайн" },
-];
+import { CATEGORIES } from "@/lib/categories";
 
 const CITIES = [
   "Душанбе", "Худжанд", "Бохтар", "Кӯлоб", "Исфара",
@@ -22,16 +14,16 @@ const CITIES = [
 
 const EXAMPLES = [
   {
-    text: "Забрать ребёнка из садика №15 в 17:00 сегодня. Бюджет 20 сомони.",
-    category: "🧒 Дети",
-  },
-  {
-    text: "Постоять в очереди в ОВИР вместо меня, нужно сдать документы на паспорт.",
+    text: "Постоять в очереди в ОВИР вместо меня, нужно сдать документы на паспорт. Бюджет 80 сомони.",
     category: "⏰ Очередь",
   },
   {
     text: "Сходить в Корвон за продуктами по списку: молоко, хлеб, яйца, помидоры. Бюджет 50 сомони.",
     category: "🛒 Покупки",
+  },
+  {
+    text: "Генеральная уборка 2-комнатной квартиры, желательно со своим инвентарём.",
+    category: "🧹 Уборка",
   },
   {
     text: "Сделать сайт-визитку для мастера по маникюру. Нужно за 2 дня.",
@@ -53,7 +45,7 @@ function CreateTaskInner() {
   const [form, setForm] = useState({
     title: "",
     description: "",
-    category: "HOUSEHOLD",
+    category: "SHOPPING",
     budget: "",
     address: "",
     city: "Душанбе",
@@ -309,7 +301,7 @@ function CreateTaskInner() {
             <label className="block text-sm font-semibold text-gray-700 mb-2">
               Категория <span className="text-red-500">*</span>
             </label>
-            <div className="grid grid-cols-3 gap-2">
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
               {CATEGORIES.map((cat) => (
                 <button
                   key={cat.key}
@@ -328,16 +320,6 @@ function CreateTaskInner() {
               ))}
             </div>
           </div>
-
-          {form.category === "CHILDREN" && (
-            <div className="flex items-start gap-2 bg-blue-50 border border-blue-200 rounded-xl px-4 py-3 text-sm text-blue-700">
-              <span className="shrink-0 mt-0.5">👶</span>
-              <span>
-                <strong>Только верифицированные исполнители</strong> — к детским задачам допускаются
-                исполнители, прошедшие расширенную проверку документов.
-              </span>
-            </div>
-          )}
 
           <div className="grid grid-cols-2 gap-4">
             <div>

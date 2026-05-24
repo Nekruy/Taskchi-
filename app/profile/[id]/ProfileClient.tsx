@@ -3,20 +3,16 @@
 import { useState } from "react";
 import { Session } from "next-auth";
 import Link from "next/link";
+import { CATEGORY_MAP, PROFESSION_MAP } from "@/lib/categories";
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
-const CATEGORY_ICONS: Record<string, string> = {
-  CHILDREN: "🧒", SHOPPING: "🛒", DELIVERY: "🚗",
-  QUEUE: "⏰", HOUSEHOLD: "🏠", ONLINE: "💻",
-};
-const CATEGORY_LABELS: Record<string, string> = {
-  CHILDREN: "Дети", SHOPPING: "Покупки", DELIVERY: "Доставка",
-  QUEUE: "Очередь", HOUSEHOLD: "Дом", ONLINE: "Онлайн",
-};
-const SKILL_LABELS: Record<string, string> = {
-  CHILDREN: "Дети", SHOPPING: "Покупки", DELIVERY: "Доставка",
-  QUEUE: "Очередь", HOUSEHOLD: "Дом и ремонт", ONLINE: "IT и онлайн",
+const EDUCATION_LABELS: Record<string, string> = {
+  SCHOOL:     "Среднее образование",
+  COLLEGE:    "Среднее специальное",
+  UNIVERSITY: "Высшее образование",
+  MASTERS:    "Магистратура",
+  COURSES:    "Курсы / самообразование",
 };
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -27,7 +23,7 @@ interface UserProfile {
   avatar?: string | null;
   bio?: string | null;
   about?: string | null;
-  headline?: string | null; // pending SQL migration — always null until column exists
+  headline?: string | null;
   city: string;
   rating: number;
   reviewCount: number;
@@ -40,6 +36,16 @@ interface UserProfile {
   skills: string[];
   workArea?: string | null;
   passportStatus: string;
+  // New executor profile fields
+  lastName?: string | null;
+  gender?: string | null;
+  birthDate?: Date | string | null;
+  education?: string | null;
+  educationField?: string | null;
+  extraSkills?: string[];
+  hasCar?: boolean;
+  workWeekends?: boolean;
+  profession?: string | null;
   verification?: { status: string } | null;
   tasksExecuted: Array<{
     id: string;
@@ -93,10 +99,21 @@ function Avatar({ src, name, size = "lg" }: { src?: string | null; name: string;
   );
 }
 
+/** Calculate age from birthDate */
+function calcAge(birthDate: Date | string | null | undefined): number | null {
+  if (!birthDate) return null;
+  const bd  = new Date(birthDate);
+  const now = new Date();
+  let age = now.getFullYear() - bd.getFullYear();
+  const m = now.getMonth() - bd.getMonth();
+  if (m < 0 || (m === 0 && now.getDate() < bd.getDate())) age--;
+  return age > 0 && age < 100 ? age : null;
+}
+
 // ─── Main component ───────────────────────────────────────────────────────────
 
 export function ProfileClient({ user, session }: ProfileClientProps) {
-  const isOwn = session?.user?.id === user.id;
+  const isOwn      = session?.user?.id === user.id;
   const viewerRole = (session?.user as { role?: string } | null)?.role;
   const isCustomer = viewerRole === "CUSTOMER";
   const [copied, setCopied] = useState(false);
@@ -104,7 +121,7 @@ export function ProfileClient({ user, session }: ProfileClientProps) {
   const stars = [1, 2, 3, 4, 5];
   const isVerifiedByPassport = user.passportStatus === "APPROVED";
 
-  // Build review lookup: taskId → review (so portfolio cards can show their review)
+  // Build review lookup: taskId → review
   const reviewByTaskId = new Map(user.reviewsReceived.map((r) => [r.taskId, r]));
 
   // Rating breakdown
@@ -115,6 +132,11 @@ export function ProfileClient({ user, session }: ProfileClientProps) {
 
   // About text: prefer `about` (executor-specific), fall back to `bio`
   const aboutText = user.about || user.bio;
+
+  // Computed extras
+  const age       = calcAge(user.birthDate);
+  const profInfo  = user.profession ? PROFESSION_MAP[user.profession] : null;
+  const eduLabel  = user.education  ? EDUCATION_LABELS[user.education] ?? user.education : null;
 
   async function shareProfile() {
     const url = `https://taskchi-production.up.railway.app/profile/${user.id}`;
@@ -139,9 +161,17 @@ export function ProfileClient({ user, session }: ProfileClientProps) {
             {/* Name + verified badge */}
             <div className="flex items-start justify-between gap-2 flex-wrap">
               <div>
-                <h1 className="text-xl font-bold text-gray-900">{user.name}</h1>
+                <h1 className="text-xl font-bold text-gray-900">
+                  {user.name}{user.lastName ? ` ${user.lastName}` : ""}
+                </h1>
                 {user.headline && (
                   <p className="text-sm text-gray-600 mt-0.5">{user.headline}</p>
+                )}
+                {/* Profession badge */}
+                {profInfo && (
+                  <span className="inline-flex items-center gap-1 mt-1 px-2.5 py-1 bg-gray-100 text-gray-700 rounded-full text-xs font-semibold">
+                    {profInfo.emoji} {profInfo.label}
+                  </span>
                 )}
               </div>
               {isVerifiedByPassport && (
@@ -151,10 +181,15 @@ export function ProfileClient({ user, session }: ProfileClientProps) {
               )}
             </div>
 
-            {/* Meta: city, workArea, memberSince */}
+            {/* Meta: city, workArea, age, gender, memberSince */}
             <div className="flex flex-wrap items-center gap-x-4 gap-y-1 mt-2 text-sm text-gray-500">
               <span>📍 {user.city}</span>
               {user.workArea && <span>🗺 {user.workArea}</span>}
+              {age && (
+                <span>
+                  {user.gender === "FEMALE" ? "👩" : user.gender === "MALE" ? "👨" : "👤"} {age} лет
+                </span>
+              )}
               <span>
                 📅 С {new Date(user.createdAt).toLocaleDateString("ru-RU", {
                   month: "long", year: "numeric",
@@ -165,18 +200,47 @@ export function ProfileClient({ user, session }: ProfileClientProps) {
             {/* Skills tags */}
             {user.skills.length > 0 && (
               <div className="flex flex-wrap gap-1.5 mt-3">
-                {user.skills.map((skill) => (
-                  <span
-                    key={skill}
-                    className="inline-flex items-center gap-1 px-2.5 py-1 bg-gray-100 text-gray-700 rounded-full text-xs font-semibold"
-                  >
-                    {CATEGORY_ICONS[skill] ?? "🔧"} {SKILL_LABELS[skill] ?? skill}
+                {user.skills.map((skill) => {
+                  const cat = CATEGORY_MAP[skill];
+                  return (
+                    <span
+                      key={skill}
+                      className="inline-flex items-center gap-1 px-2.5 py-1 bg-gray-100 text-gray-700 rounded-full text-xs font-semibold"
+                    >
+                      {cat?.emoji ?? "🔧"} {cat?.label ?? skill}
+                    </span>
+                  );
+                })}
+              </div>
+            )}
+
+            {/* Extra skill tags */}
+            {(user.extraSkills ?? []).length > 0 && (
+              <div className="flex flex-wrap gap-1.5 mt-2">
+                {user.hasCar && (
+                  <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-amber-50 text-amber-700 border border-amber-200 rounded-full text-xs font-semibold">
+                    🚗 Есть авто
                   </span>
-                ))}
+                )}
+                {user.workWeekends && (
+                  <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-blue-50 text-blue-700 border border-blue-200 rounded-full text-xs font-semibold">
+                    📅 Работает в выходные
+                  </span>
+                )}
               </div>
             )}
           </div>
         </div>
+
+        {/* Education */}
+        {(eduLabel || user.educationField) && (
+          <div className="mt-4 pt-4 border-t border-gray-100 flex items-center gap-2 text-sm text-gray-600">
+            <span>🎓</span>
+            <span>
+              {eduLabel}{user.educationField ? ` · ${user.educationField}` : ""}
+            </span>
+          </div>
+        )}
 
         {/* About text */}
         {aboutText && (
@@ -260,6 +324,7 @@ export function ProfileClient({ user, session }: ProfileClientProps) {
           <div className="grid sm:grid-cols-2 gap-3">
             {user.tasksExecuted.map((task) => {
               const review = reviewByTaskId.get(task.id);
+              const cat    = CATEGORY_MAP[task.category];
               return (
                 <Link
                   key={task.id}
@@ -268,9 +333,9 @@ export function ProfileClient({ user, session }: ProfileClientProps) {
                 >
                   {/* Category */}
                   <div className="flex items-center gap-1.5 mb-2">
-                    <span className="text-lg leading-none">{CATEGORY_ICONS[task.category] ?? "📋"}</span>
+                    <span className="text-lg leading-none">{cat?.emoji ?? "📋"}</span>
                     <span className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
-                      {CATEGORY_LABELS[task.category] ?? task.category}
+                      {cat?.label ?? task.category}
                     </span>
                   </div>
 
