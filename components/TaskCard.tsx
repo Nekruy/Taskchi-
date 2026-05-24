@@ -1,13 +1,13 @@
 import Link from "next/link";
 
 /* ── Category config ─────────────────────────────────────────── */
-const CAT: Record<string, { label: string; emoji: string; pill: string; icon: string }> = {
-  CHILDREN: { label: "Дети",      emoji: "🧒", pill: "bg-pink-50 text-pink-700 border-pink-200",    icon: "bg-pink-100"   },
-  SHOPPING: { label: "Покупки",   emoji: "🛒", pill: "bg-blue-50 text-blue-700 border-blue-200",    icon: "bg-blue-100"   },
-  DELIVERY: { label: "Доставка",  emoji: "🚗", pill: "bg-amber-50 text-amber-700 border-amber-200", icon: "bg-amber-100"  },
-  QUEUE:    { label: "Очередь",   emoji: "⏰", pill: "bg-purple-50 text-purple-700 border-purple-200", icon: "bg-purple-100" },
-  HOUSEHOLD:{ label: "Дом",       emoji: "🏠", pill: "bg-green-50 text-green-700 border-green-200", icon: "bg-green-100"  },
-  ONLINE:   { label: "IT задача", emoji: "💻", pill: "bg-indigo-50 text-indigo-700 border-indigo-200", icon: "bg-indigo-100" },
+const CAT: Record<string, { label: string; emoji: string }> = {
+  CHILDREN: { label: "Дети",      emoji: "🧒" },
+  SHOPPING: { label: "Покупки",   emoji: "🛒" },
+  DELIVERY: { label: "Доставка",  emoji: "🚗" },
+  QUEUE:    { label: "Очередь",   emoji: "⏰" },
+  HOUSEHOLD:{ label: "Дом",       emoji: "🏠" },
+  ONLINE:   { label: "IT задача", emoji: "💻" },
 };
 
 const STATUS: Record<string, { label: string; cls: string }> = {
@@ -67,21 +67,48 @@ export interface TaskCardProps {
 
 /* ── Component ───────────────────────────────────────────────── */
 export function TaskCard({ task }: TaskCardProps) {
-  const cat    = CAT[task.category]    ?? { label: task.category, emoji: "📋", pill: "bg-gray-100 text-gray-600 border-gray-200", icon: "bg-gray-100" };
-  const status = STATUS[task.status]  ?? { label: task.status, cls: "badge" };
+  const cat    = CAT[task.category]    ?? { label: task.category, emoji: "📋" };
+  const status = STATUS[task.status]   ?? { label: task.status, cls: "badge" };
   const offerCount = task._count.offers;
   const offerLabel = offerCount === 0 ? "Нет откликов"
     : `${offerCount} ${offerCount === 1 ? "отклик" : offerCount < 5 ? "отклика" : "откликов"}`;
+  const isOpen = task.status === "OPEN";
 
   return (
-    <Link href={`/tasks/${task.id}`} className="block card-lift group animate-slide-up">
-
-      {/* ── Top row: category + status ── */}
+    <Link
+      href={`/tasks/${task.id}`}
+      className="block group animate-slide-up"
+      style={{
+        background: "#ffffff",
+        borderRadius: "20px",
+        border: "1px solid #e8f5e8",
+        boxShadow: "0 2px 12px rgba(20,168,0,0.08)",
+        padding: "20px",
+        transition: "all 0.22s cubic-bezier(.22,.61,.36,1)",
+        display: "block",
+        textDecoration: "none",
+      }}
+      onMouseEnter={(e) => {
+        const el = e.currentTarget;
+        el.style.borderColor = "#14A800";
+        el.style.boxShadow   = "0 8px 32px rgba(20,168,0,0.18)";
+        el.style.transform   = "translateY(-4px)";
+      }}
+      onMouseLeave={(e) => {
+        const el = e.currentTarget;
+        el.style.borderColor = "#e8f5e8";
+        el.style.boxShadow   = "0 2px 12px rgba(20,168,0,0.08)";
+        el.style.transform   = "translateY(0)";
+      }}
+    >
+      {/* ── Top row: category badge + status ── */}
       <div className="flex items-center justify-between gap-2 mb-4">
-        <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold border ${cat.pill}`}>
-          <span className={`w-5 h-5 ${cat.icon} rounded-full flex items-center justify-center text-sm`}>
-            {cat.emoji}
-          </span>
+        {/* Category — gradient pill */}
+        <span
+          className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold text-white"
+          style={{ background: "linear-gradient(135deg, #14A800, #00d4aa)" }}
+        >
+          <span className="text-sm leading-none">{cat.emoji}</span>
           {cat.label}
         </span>
 
@@ -108,29 +135,37 @@ export function TaskCard({ task }: TaskCardProps) {
       {/* ── Budget row ── */}
       <div className="flex items-baseline justify-between mb-4">
         <div>
-          <span className="text-2xl font-extrabold" style={{ color: "var(--clr-money)" }}>
+          <span
+            className="text-2xl font-extrabold price-gradient"
+          >
             {task.budget.toLocaleString("ru-RU")}
           </span>
           <span className="text-sm font-semibold text-gray-400 ml-1">сом</span>
         </div>
-        <span className="text-xs text-gray-400 bg-gray-50 border border-gray-100 px-2.5 py-1 rounded-full font-medium">
+        <span
+          className="text-xs text-gray-500 px-2.5 py-1 font-medium"
+          style={{ background: "rgba(20,168,0,.06)", border: "1px solid #e8f5e8", borderRadius: "20px" }}
+        >
           {offerLabel}
         </span>
       </div>
 
       {/* ── Divider ── */}
-      <div className="h-px bg-gray-50 mb-4" />
+      <div className="h-px mb-4" style={{ background: "#f0f9f0" }} />
 
       {/* ── Creator row ── */}
       <div className="flex items-center gap-2.5 mb-4">
-        <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-[#14A800] to-[#0d8c00] flex items-center justify-center text-white font-extrabold text-xs shrink-0 shadow-sm">
+        <div
+          className="w-8 h-8 rounded-xl flex items-center justify-center text-white font-extrabold text-xs shrink-0 shadow-sm"
+          style={{ background: "linear-gradient(135deg, #14A800, #00d4aa)" }}
+        >
           {task.creator.name[0]?.toUpperCase()}
         </div>
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-1.5">
             <p className="text-xs font-semibold text-gray-700 truncate">{task.creator.name}</p>
             {task.creator.isVerified && (
-              <span title="Верифицирован" className="text-[#14A800] text-xs shrink-0">✓</span>
+              <span title="Верифицирован" className="text-[#14A800] text-xs shrink-0 font-bold">✓</span>
             )}
           </div>
           {task.creator.rating > 0
@@ -151,13 +186,17 @@ export function TaskCard({ task }: TaskCardProps) {
         </div>
       </div>
 
-      {/* ── "Откликнуться" button ── */}
-      <div className={`w-full py-2.5 rounded-xl text-sm font-bold text-center transition-all duration-200 ${
-        task.status === "OPEN"
-          ? "bg-gradient-to-r from-[#14A800] to-[#0d8c00] text-white group-hover:from-[#0d8c00] group-hover:to-[#0a7000] shadow-sm group-hover:shadow-md"
-          : "bg-gray-100 text-gray-500"
-      }`}>
-        {task.status === "OPEN" ? "Откликнуться →" : "Подробнее →"}
+      {/* ── Action button ── */}
+      <div
+        className="w-full py-2.5 text-sm font-bold text-center transition-all duration-200"
+        style={{
+          background: isOpen ? "linear-gradient(135deg, #14A800, #00d4aa)" : "#f5f5f5",
+          color:      isOpen ? "#ffffff" : "#9ca3af",
+          borderRadius: "14px",
+          boxShadow: isOpen ? "0 2px 8px rgba(20,168,0,.20)" : "none",
+        }}
+      >
+        {isOpen ? "Откликнуться →" : "Подробнее →"}
       </div>
     </Link>
   );

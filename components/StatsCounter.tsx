@@ -10,7 +10,6 @@ function useCountUp(target: number, duration = 1400) {
     if (target === 0) return;
     const el = wrapRef.current;
     if (!el) return;
-
     const observer = new IntersectionObserver(
       ([entry]) => {
         if (!entry.isIntersecting) return;
@@ -18,7 +17,7 @@ function useCountUp(target: number, duration = 1400) {
         const start = performance.now();
         const tick = (now: number) => {
           const progress = Math.min((now - start) / duration, 1);
-          const eased = 1 - Math.pow(1 - progress, 3);
+          const eased    = 1 - Math.pow(1 - progress, 3);
           setCount(Math.round(eased * target));
           if (progress < 1) requestAnimationFrame(tick);
         };
@@ -33,38 +32,51 @@ function useCountUp(target: number, duration = 1400) {
   return { count, wrapRef };
 }
 
+const ITEMS = [
+  { key: "totalTasks", label: "Поручений создано", emoji: "📋" },
+  { key: "totalUsers", label: "Пользователей",     emoji: "👥" },
+  { key: "doneTasks",  label: "Успешно выполнено", emoji: "✅" },
+] as const;
+
 export function StatsCounter({
   stats,
 }: {
   stats: { totalTasks: number; totalUsers: number; doneTasks: number };
 }) {
-  const items = [
-    { n: stats.totalTasks, label: "Поручений создано", emoji: "📋", color: "text-[#14A800]" },
-    { n: stats.totalUsers, label: "Пользователей",     emoji: "👥", color: "text-blue-500"   },
-    { n: stats.doneTasks,  label: "Успешно выполнено", emoji: "✅", color: "text-emerald-500" },
-  ];
-
   return (
     <div className="grid grid-cols-3 gap-4">
-      {items.map((s) => (
-        <StatItem key={s.label} {...s} />
+      {ITEMS.map((s) => (
+        <StatItem key={s.key} n={stats[s.key]} label={s.label} emoji={s.emoji} />
       ))}
     </div>
   );
 }
 
-function StatItem({ n, label, emoji, color }: { n: number; label: string; emoji: string; color: string }) {
+function StatItem({ n, label, emoji }: { n: number; label: string; emoji: string }) {
   const { count, wrapRef } = useCountUp(n);
   return (
     <div
       ref={wrapRef}
-      className="flex flex-col items-center gap-1 py-4 px-2 rounded-2xl bg-gray-50 border border-gray-100 text-center"
-      style={{ boxShadow: "0 1px 4px rgba(0,0,0,.04)" }}
+      className="flex flex-col items-center gap-1.5 py-5 px-3 rounded-2xl text-center relative overflow-hidden"
+      style={{
+        background: "linear-gradient(135deg, rgba(20,168,0,.06) 0%, rgba(0,212,170,.06) 100%)",
+        border:     "1px solid #e8f5e8",
+        boxShadow:  "0 2px 12px rgba(20,168,0,.06)",
+      }}
     >
-      <span className={`text-3xl font-extrabold tabular-nums ${color}`}>
+      {/* Subtle gradient shine top-right */}
+      <div
+        className="absolute -top-4 -right-4 w-12 h-12 rounded-full opacity-20 pointer-events-none"
+        style={{ background: "radial-gradient(circle, #14A800, transparent)" }}
+      />
+
+      <span className="text-2xl mb-0.5">{emoji}</span>
+      <span
+        className="text-3xl font-extrabold tabular-nums price-gradient"
+      >
         {count.toLocaleString("ru-RU")}
       </span>
-      <span className="text-xs text-gray-500 font-medium">{emoji} {label}</span>
+      <span className="text-xs text-gray-500 font-medium leading-tight">{label}</span>
     </div>
   );
 }
