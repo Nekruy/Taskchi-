@@ -222,6 +222,100 @@ body {
 }
 
 /* ══════════════════════════════════════════════════════════════════
+   PAGE-SPECIFIC HOVER CLASSES (CSS-only — safe in Server Components)
+══════════════════════════════════════════════════════════════════ */
+
+/* Search form — green border + glow on focus-within */
+.search-wrapper {
+  border-radius: 24px;
+  border: 2px solid #e8f5e8;
+  box-shadow: 0 4px 20px rgba(20,168,0,.10);
+  background: white;
+  overflow: hidden;
+  transition: border-color .2s ease, box-shadow .2s ease;
+}
+.search-wrapper:focus-within {
+  border-color: #14A800;
+  box-shadow: 0 4px 20px rgba(20,168,0,.20), 0 0 0 4px rgba(20,168,0,.08);
+}
+
+/* Category card */
+.page-cat-card {
+  background: #ffffff;
+  border: 1px solid #e8f5e8;
+  border-radius: 20px;
+  padding: 16px 12px;
+  box-shadow: 0 2px 8px rgba(20,168,0,.06);
+  transition: border-color .2s ease, box-shadow .2s ease, transform .2s ease;
+  text-align: center;
+  display: block;
+  text-decoration: none;
+  color: inherit;
+}
+.page-cat-card:hover {
+  border-color: #14A800;
+  box-shadow: 0 8px 24px rgba(20,168,0,.16);
+  transform: translateY(-4px);
+}
+
+/* Example search pills */
+.page-example-pill {
+  background: rgba(255,255,255,.80);
+  border: 1px solid #e8f5e8;
+  border-radius: 20px;
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: #4b5563;
+  padding: 6px 12px;
+  text-decoration: none;
+  transition: background .15s ease, border-color .15s ease, color .15s ease;
+}
+.page-example-pill:hover {
+  background: rgba(20,168,0,.08);
+  border-color: rgba(20,168,0,.35);
+  color: #14A800;
+}
+
+/* Executor / trust / feature cards (homepage) */
+.page-hover-card {
+  background: #ffffff;
+  border: 1px solid #e8f5e8;
+  border-radius: 20px;
+  padding: 20px;
+  box-shadow: 0 2px 12px rgba(20,168,0,.08);
+  transition: border-color .22s ease, box-shadow .22s ease, transform .22s ease;
+  text-align: center;
+  display: block;
+  text-decoration: none;
+  color: inherit;
+}
+.page-hover-card:hover {
+  border-color: #14A800;
+  box-shadow: 0 8px 32px rgba(20,168,0,.18);
+  transform: translateY(-4px);
+}
+
+/* Task card (used from TaskCard.tsx) */
+.task-card {
+  background: #ffffff;
+  border: 1px solid #e8f5e8;
+  border-radius: 20px;
+  padding: 20px;
+  box-shadow: 0 2px 12px rgba(20,168,0,.08);
+  transition: border-color .22s cubic-bezier(.22,.61,.36,1),
+              box-shadow    .22s cubic-bezier(.22,.61,.36,1),
+              transform     .22s cubic-bezier(.22,.61,.36,1);
+  display: block;
+  text-decoration: none;
+  color: inherit;
+}
+.task-card:hover {
+  border-color: #14A800;
+  box-shadow: 0 8px 32px rgba(20,168,0,.18);
+  transform: translateY(-4px);
+}
+
+/* ══════════════════════════════════════════════════════════════════
    KEYFRAMES
 ══════════════════════════════════════════════════════════════════ */
 @keyframes fadeIn  { from { opacity: 0 }                              to { opacity: 1 }                    }

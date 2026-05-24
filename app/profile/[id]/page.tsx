@@ -11,7 +11,6 @@ export async function generateMetadata({ params }: { params: { id: string } }) {
     where: { id: params.id },
     select: {
       name: true,
-      headline: true,
       rating: true,
       _count: { select: { tasksExecuted: { where: { status: "DONE" } } } },
     },
@@ -19,7 +18,6 @@ export async function generateMetadata({ params }: { params: { id: string } }) {
   if (!user) return { title: "Профиль — Taskchi" };
 
   const parts: string[] = [];
-  if (user.headline) parts.push(user.headline);
   if (user.rating > 0) parts.push(`Рейтинг ${user.rating.toFixed(1)}`);
   if (user._count.tasksExecuted > 0)
     parts.push(`${user._count.tasksExecuted} выполненных задач`);
@@ -41,7 +39,6 @@ export default async function ProfilePage({ params }: { params: { id: string } }
         avatar: true,
         bio: true,
         about: true,
-        headline: true,
         city: true,
         rating: true,
         reviewCount: true,

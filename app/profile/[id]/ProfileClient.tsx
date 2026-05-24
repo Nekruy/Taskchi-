@@ -27,7 +27,7 @@ interface UserProfile {
   avatar?: string | null;
   bio?: string | null;
   about?: string | null;
-  headline?: string | null;
+  headline?: string | null; // pending SQL migration — always null until column exists
   city: string;
   rating: number;
   reviewCount: number;

@@ -1,3 +1,5 @@
+"use client";
+
 import Link from "next/link";
 
 /* ── Category config ─────────────────────────────────────────── */
@@ -67,43 +69,19 @@ export interface TaskCardProps {
 
 /* ── Component ───────────────────────────────────────────────── */
 export function TaskCard({ task }: TaskCardProps) {
-  const cat    = CAT[task.category]    ?? { label: task.category, emoji: "📋" };
-  const status = STATUS[task.status]   ?? { label: task.status, cls: "badge" };
+  const cat    = CAT[task.category]   ?? { label: task.category, emoji: "📋" };
+  const status = STATUS[task.status]  ?? { label: task.status, cls: "badge" };
   const offerCount = task._count.offers;
   const offerLabel = offerCount === 0 ? "Нет откликов"
     : `${offerCount} ${offerCount === 1 ? "отклик" : offerCount < 5 ? "отклика" : "откликов"}`;
   const isOpen = task.status === "OPEN";
 
   return (
-    <Link
-      href={`/tasks/${task.id}`}
-      className="block group animate-slide-up"
-      style={{
-        background: "#ffffff",
-        borderRadius: "20px",
-        border: "1px solid #e8f5e8",
-        boxShadow: "0 2px 12px rgba(20,168,0,0.08)",
-        padding: "20px",
-        transition: "all 0.22s cubic-bezier(.22,.61,.36,1)",
-        display: "block",
-        textDecoration: "none",
-      }}
-      onMouseEnter={(e) => {
-        const el = e.currentTarget;
-        el.style.borderColor = "#14A800";
-        el.style.boxShadow   = "0 8px 32px rgba(20,168,0,0.18)";
-        el.style.transform   = "translateY(-4px)";
-      }}
-      onMouseLeave={(e) => {
-        const el = e.currentTarget;
-        el.style.borderColor = "#e8f5e8";
-        el.style.boxShadow   = "0 2px 12px rgba(20,168,0,0.08)";
-        el.style.transform   = "translateY(0)";
-      }}
-    >
-      {/* ── Top row: category badge + status ── */}
+    /* task-card CSS class handles all hover via pure CSS — no event handlers needed */
+    <Link href={`/tasks/${task.id}`} className="task-card group animate-slide-up">
+
+      {/* ── Category badge + status ── */}
       <div className="flex items-center justify-between gap-2 mb-4">
-        {/* Category — gradient pill */}
         <span
           className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold text-white"
           style={{ background: "linear-gradient(135deg, #14A800, #00d4aa)" }}
@@ -132,12 +110,10 @@ export function TaskCard({ task }: TaskCardProps) {
         {task.description}
       </p>
 
-      {/* ── Budget row ── */}
+      {/* ── Budget ── */}
       <div className="flex items-baseline justify-between mb-4">
         <div>
-          <span
-            className="text-2xl font-extrabold price-gradient"
-          >
+          <span className="text-2xl font-extrabold price-gradient">
             {task.budget.toLocaleString("ru-RU")}
           </span>
           <span className="text-sm font-semibold text-gray-400 ml-1">сом</span>
@@ -153,7 +129,7 @@ export function TaskCard({ task }: TaskCardProps) {
       {/* ── Divider ── */}
       <div className="h-px mb-4" style={{ background: "#f0f9f0" }} />
 
-      {/* ── Creator row ── */}
+      {/* ── Creator ── */}
       <div className="flex items-center gap-2.5 mb-4">
         <div
           className="w-8 h-8 rounded-xl flex items-center justify-center text-white font-extrabold text-xs shrink-0 shadow-sm"
@@ -188,12 +164,12 @@ export function TaskCard({ task }: TaskCardProps) {
 
       {/* ── Action button ── */}
       <div
-        className="w-full py-2.5 text-sm font-bold text-center transition-all duration-200"
+        className="w-full py-2.5 text-sm font-bold text-center"
         style={{
-          background: isOpen ? "linear-gradient(135deg, #14A800, #00d4aa)" : "#f5f5f5",
-          color:      isOpen ? "#ffffff" : "#9ca3af",
+          background:   isOpen ? "linear-gradient(135deg, #14A800, #00d4aa)" : "#f5f5f5",
+          color:        isOpen ? "#ffffff" : "#9ca3af",
           borderRadius: "14px",
-          boxShadow: isOpen ? "0 2px 8px rgba(20,168,0,.20)" : "none",
+          boxShadow:    isOpen ? "0 2px 8px rgba(20,168,0,.20)" : "none",
         }}
       >
         {isOpen ? "Откликнуться →" : "Подробнее →"}

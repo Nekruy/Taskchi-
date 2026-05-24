@@ -2,7 +2,10 @@ import { NextRequest, NextResponse } from "next/server";
 import { getToken } from "next-auth/jwt";
 import { prisma } from "@/lib/prisma";
 
-// PATCH /api/executor/profile — update headline and/or about
+// PATCH /api/executor/profile — update about text
+// NOTE: headline field requires SQL migration before it can be added back.
+// Run: ALTER TABLE "users" ADD COLUMN IF NOT EXISTS "headline" TEXT;
+// Then re-add headline to prisma/schema.prisma and this route.
 export async function PATCH(req: NextRequest) {
   const token = await getToken({ req });
   if (!token) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -16,12 +19,8 @@ export async function PATCH(req: NextRequest) {
     return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
   }
 
-  const updateData: { headline?: string | null; about?: string | null } = {};
+  const updateData: { about?: string | null } = {};
 
-  if (body.headline !== undefined) {
-    const h = String(body.headline || "").trim();
-    updateData.headline = h.length > 0 ? h.slice(0, 120) : null;
-  }
   if (body.about !== undefined) {
     const a = String(body.about || "").trim();
     updateData.about = a.length > 0 ? a.slice(0, 500) : null;
@@ -34,7 +33,7 @@ export async function PATCH(req: NextRequest) {
   const user = await prisma.user.update({
     where: { id: userId },
     data: updateData,
-    select: { id: true, headline: true, about: true },
+    select: { id: true, about: true },
   });
 
   return NextResponse.json({ user });
