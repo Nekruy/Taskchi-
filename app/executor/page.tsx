@@ -82,9 +82,18 @@ type DashData = {
 
 // ─── Sub-components ───────────────────────────────────────────────────────────
 
-function StatCard({ label, value }: { label: string; value: string | number }) {
+function StatCard({ label, value, delay = 0 }: { label: string; value: string | number; delay?: number }) {
   return (
-    <div className="bg-white rounded-2xl border border-gray-100 p-4">
+    <div
+      className="bg-white rounded-2xl border border-[#e8f5e8] p-4 animate-scale-in"
+      style={{
+        animationDelay: `${delay}ms`,
+        boxShadow: "0 2px 12px rgba(20,168,0,.06)",
+        transition: "box-shadow .2s, transform .2s",
+      }}
+      onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.boxShadow = "0 6px 24px rgba(20,168,0,.14)"; (e.currentTarget as HTMLElement).style.transform = "translateY(-2px)"; }}
+      onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.boxShadow = "0 2px 12px rgba(20,168,0,.06)"; (e.currentTarget as HTMLElement).style.transform = ""; }}
+    >
       <p className="text-xs text-gray-500 mb-1">{label}</p>
       <p className="text-xl font-bold text-gray-900">{value}</p>
     </div>
@@ -365,10 +374,74 @@ export default function ExecutorDashboardPage() {
         />
       )}
 
-      {/* Header */}
-      <div className="bg-white border-b border-gray-100 px-4 py-4 sticky top-0 z-10">
-        <h1 className="text-xl font-bold text-gray-900">Панель исполнителя</h1>
-        <p className="text-sm text-gray-500">{user.name}</p>
+      {/* ── Animated gradient hero header ── */}
+      <div
+        className="relative overflow-hidden px-4 pt-8 pb-6"
+        style={{
+          background: "linear-gradient(135deg, #0d1f0d 0%, #0a2a1a 50%, #061a0a 100%)",
+        }}
+      >
+        {/* Glow blobs */}
+        <div className="absolute -top-8 -right-8 w-48 h-48 rounded-full pointer-events-none"
+             style={{ background: "radial-gradient(circle, rgba(20,168,0,.35) 0%, transparent 65%)", filter: "blur(30px)" }} />
+        <div className="absolute -bottom-6 left-1/4 w-40 h-40 rounded-full pointer-events-none"
+             style={{ background: "radial-gradient(circle, rgba(0,212,170,.25) 0%, transparent 65%)", filter: "blur(30px)" }} />
+
+        <div className="relative max-w-2xl mx-auto">
+          <div className="flex items-center gap-4">
+            {/* Avatar */}
+            <div
+              className="w-14 h-14 rounded-2xl flex items-center justify-center text-white font-extrabold text-2xl shrink-0 shadow-lg"
+              style={{ background: "linear-gradient(135deg, #14A800, #00d4aa)", boxShadow: "0 4px 20px rgba(20,168,0,.4)" }}
+            >
+              {user.name[0]?.toUpperCase()}
+            </div>
+            <div className="flex-1 min-w-0 animate-fade-up">
+              <p className="text-xs font-semibold uppercase tracking-widest mb-0.5" style={{ color: "rgba(255,255,255,.5)" }}>
+                Панель исполнителя
+              </p>
+              <h1 className="text-xl font-extrabold text-white truncate">{user.name}</h1>
+              {user.headline && (
+                <p className="text-sm mt-0.5 truncate" style={{ color: "rgba(255,255,255,.6)" }}>{user.headline}</p>
+              )}
+            </div>
+            {/* Availability toggle — compact */}
+            <button
+              onClick={toggleAvailability}
+              disabled={toggling}
+              className="shrink-0 text-xs font-bold px-3 py-1.5 rounded-xl transition-all"
+              style={{
+                background: data.user.isAvailable ? "rgba(20,168,0,.25)" : "rgba(255,255,255,.10)",
+                color: data.user.isAvailable ? "#14A800" : "rgba(255,255,255,.6)",
+                border: data.user.isAvailable ? "1px solid rgba(20,168,0,.4)" : "1px solid rgba(255,255,255,.15)",
+              }}
+            >
+              {data.user.isAvailable ? "● Доступен" : "○ Занят"}
+            </button>
+          </div>
+
+          {/* Quick stats strip */}
+          <div className="grid grid-cols-3 gap-3 mt-5">
+            {[
+              { label: "Выполнено",  value: completedTasks.length },
+              { label: "Заработано", value: `${earned.toLocaleString()} сом` },
+              { label: "Рейтинг",    value: `⭐ ${user.rating.toFixed(1)}` },
+            ].map((s, i) => (
+              <div
+                key={i}
+                className="rounded-xl px-3 py-2 text-center animate-scale-in"
+                style={{
+                  background: "rgba(255,255,255,.08)",
+                  border: "1px solid rgba(255,255,255,.10)",
+                  animationDelay: `${i * 80}ms`,
+                }}
+              >
+                <p className="text-base font-extrabold text-white leading-tight">{s.value}</p>
+                <p className="text-xs mt-0.5" style={{ color: "rgba(255,255,255,.50)" }}>{s.label}</p>
+              </div>
+            ))}
+          </div>
+        </div>
       </div>
 
       <div className="max-w-2xl mx-auto px-4 py-5 space-y-5">
@@ -412,10 +485,10 @@ export default function ExecutorDashboardPage() {
 
         {/* B) Stats */}
         <div className="grid grid-cols-2 gap-3">
-          <StatCard label="Выполнено задач" value={completedTasks.length} />
-          <StatCard label="Заработано" value={`${earned.toLocaleString()} сом`} />
-          <StatCard label="Рейтинг" value={`⭐ ${user.rating.toFixed(1)}`} />
-          <StatCard label="Отзывы" value={user.reviewCount} />
+          <StatCard label="Отзывы"       value={user.reviewCount}         delay={0}   />
+          <StatCard label="Задачи в работе" value={activeTasks.length}    delay={80}  />
+          <StatCard label="Доступен сейчас" value={user.isAvailable ? "✅ Да" : "❌ Нет"} delay={160} />
+          <StatCard label="Готовность резюме" value={`${resumePct}%`}     delay={240} />
         </div>
 
         {/* ══ MY RESUME ════════════════════════════════════════════════════════ */}
@@ -807,8 +880,15 @@ export default function ExecutorDashboardPage() {
             {available.length === 0 && (
               <p className="text-center text-gray-400 py-8 text-sm">Нет доступных задач</p>
             )}
-            {available.map((task) => (
-              <div key={task.id} className="relative bg-white rounded-2xl border border-gray-100 p-4 overflow-hidden">
+            {available.map((task, i) => (
+              <div
+                key={task.id}
+                className="relative bg-white rounded-2xl border border-[#e8f5e8] p-4 overflow-hidden animate-fade-up"
+                style={{
+                  animationDelay: `${i * 60}ms`,
+                  boxShadow: "0 2px 10px rgba(20,168,0,.06)",
+                }}
+              >
                 {!isApproved && (
                   <div className="absolute inset-0 bg-white/75 backdrop-blur-[2px] flex items-center justify-center z-10">
                     <span className="text-sm font-semibold text-gray-500">🔒 Верификация требуется</span>
@@ -833,6 +913,7 @@ export default function ExecutorDashboardPage() {
                       <Link
                         href={`/tasks/${task.id}`}
                         className="text-xs bg-[#14A800] hover:bg-[#0d8c00] text-white px-3 py-1.5 rounded-lg font-semibold transition-colors"
+                        style={{ boxShadow: "0 2px 8px rgba(20,168,0,.25)" }}
                       >
                         Откликнуться
                       </Link>

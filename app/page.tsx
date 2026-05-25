@@ -94,6 +94,37 @@ export default async function HomePage() {
         <div className="absolute -bottom-24 -left-24 w-96 h-96 rounded-full pointer-events-none"
              style={{ background: "radial-gradient(circle, rgba(20,168,0,.12) 0%, transparent 65%)" }} />
 
+        {/* ── 12 floating particles (pure CSS, no JS) ── */}
+        <div aria-hidden="true" className="pointer-events-none">
+          {[
+            { w: 10, h: 10, top: "8%",  left: "12%", bg: "#14A800", op: 0.4, dur: "5.2s", delay: "0s"    },
+            { w: 6,  h: 6,  top: "18%", left: "5%",  bg: "#00d4aa", op: 0.3, dur: "4.8s", delay: "0.7s"  },
+            { w: 14, h: 14, top: "65%", left: "7%",  bg: "#14A800", op: 0.25,dur: "6.1s", delay: "1.2s"  },
+            { w: 8,  h: 8,  top: "82%", left: "18%", bg: "#00d4aa", op: 0.35,dur: "5.5s", delay: "0.4s"  },
+            { w: 12, h: 12, top: "35%", left: "3%",  bg: "#14A800", op: 0.2, dur: "7.0s", delay: "2.1s"  },
+            { w: 5,  h: 5,  top: "55%", left: "22%", bg: "#00d4aa", op: 0.45,dur: "4.2s", delay: "1.8s"  },
+            { w: 9,  h: 9,  top: "12%", left: "78%", bg: "#00d4aa", op: 0.35,dur: "5.8s", delay: "0.3s"  },
+            { w: 15, h: 15, top: "30%", left: "88%", bg: "#14A800", op: 0.20,dur: "6.5s", delay: "1.5s"  },
+            { w: 7,  h: 7,  top: "70%", left: "85%", bg: "#00d4aa", op: 0.40,dur: "4.6s", delay: "0.9s"  },
+            { w: 11, h: 11, top: "88%", left: "75%", bg: "#14A800", op: 0.30,dur: "5.3s", delay: "2.5s"  },
+            { w: 5,  h: 5,  top: "48%", left: "92%", bg: "#00d4aa", op: 0.50,dur: "3.9s", delay: "0.6s"  },
+            { w: 8,  h: 8,  top: "22%", left: "95%", bg: "#14A800", op: 0.25,dur: "6.8s", delay: "3.0s"  },
+          ].map((p, i) => (
+            <div
+              key={i}
+              className="hero-particle"
+              style={{
+                width: p.w, height: p.h,
+                top: p.top, left: p.left,
+                background: p.bg,
+                opacity: p.op,
+                "--dur":   p.dur,
+                "--delay": p.delay,
+              } as React.CSSProperties}
+            />
+          ))}
+        </div>
+
         <div className="relative max-w-7xl mx-auto px-4 sm:px-6 py-16 md:py-24">
           <div className="grid md:grid-cols-2 gap-12 items-center min-h-[520px]">
 
@@ -101,25 +132,25 @@ export default async function HomePage() {
             <div className="max-w-xl">
               {/* Location pill */}
               <div
-                className="inline-flex items-center gap-2 text-xs font-bold px-4 py-1.5 mb-6"
+                className="inline-flex items-center gap-2 text-xs font-bold px-4 py-1.5 mb-6 animate-fade-up"
                 style={{ background: "rgba(20,168,0,.10)", color: "#14A800", borderRadius: "20px", border: "1px solid rgba(20,168,0,.20)" }}
               >
                 <span className="w-2 h-2 rounded-full bg-[#14A800] animate-pulse" />
                 🇹🇯 Душанбе и города Таджикистана
               </div>
 
-              <h1 className="text-5xl md:text-6xl font-extrabold text-gray-900 leading-[1.08] tracking-tight mb-5">
+              <h1 className="text-5xl md:text-6xl font-extrabold text-gray-900 leading-[1.08] tracking-tight mb-5 animate-fade-up delay-100">
                 Любая задача —<br />
-                <span className="gradient-text">за минуты</span>
+                <span className="shimmer-text">за минуты</span>
               </h1>
 
-              <p className="text-lg text-gray-500 mb-8 leading-relaxed">
+              <p className="text-lg text-gray-500 mb-8 leading-relaxed animate-fade-up delay-200">
                 Опишите что нужно сделать. AI найдёт лучшего исполнителя рядом.
                 От похода в магазин до IT проекта.
               </p>
 
               {/* Search — focus-within handled by CSS .search-wrapper class, NO js handlers */}
-              <form action="/tasks/create" method="GET" className="mb-5">
+              <form action="/tasks/create" method="GET" className="mb-5 animate-fade-up delay-300">
                 <div className="search-wrapper flex">
                   <input
                     name="q"
@@ -144,7 +175,7 @@ export default async function HomePage() {
               </form>
 
               {/* Example pills — CSS-only hover via .page-example-pill */}
-              <div className="flex flex-wrap gap-2">
+              <div className="flex flex-wrap gap-2 animate-fade-up delay-400">
                 {[
                   "Постоять в очереди в ОВИР",
                   "Сходить в Корвон за продуктами",
@@ -251,10 +282,15 @@ export default async function HomePage() {
             <p className="section-subtitle">Выберите категорию или опишите задачу своими словами</p>
           </div>
 
-          {/* CSS-only hover via .page-cat-card — no JS. 10 categories, 5 per row */}
+          {/* CSS-only hover via .page-cat-card — no JS. stagger via inline animation-delay */}
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3">
-            {CATEGORIES.map((cat) => (
-              <Link key={cat.key} href={`/tasks?category=${cat.key}`} className="page-cat-card">
+            {CATEGORIES.map((cat, i) => (
+              <Link
+                key={cat.key}
+                href={`/tasks?category=${cat.key}`}
+                className="page-cat-card animate-fade-up"
+                style={{ animationDelay: `${i * 60}ms` }}
+              >
                 <div className="w-12 h-12 mx-auto mb-3 rounded-2xl flex items-center justify-center text-2xl shadow-sm"
                      style={{ background: cat.gradient }}>
                   {cat.emoji}
@@ -262,6 +298,54 @@ export default async function HomePage() {
                 <p className="font-bold text-sm text-gray-800 mb-0.5">{cat.label}</p>
                 <p className="text-xs text-gray-500 leading-tight">{cat.desc}</p>
               </Link>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ════════════════════ DARK STATS BANNER ════════════════════════ */}
+      <section style={{ background: "#061a0a" }} className="py-16 px-4 relative overflow-hidden">
+        {/* Subtle green glow blobs */}
+        <div className="absolute -top-16 left-1/4 w-72 h-72 rounded-full pointer-events-none"
+             style={{ background: "radial-gradient(circle, rgba(20,168,0,.18) 0%, transparent 70%)", filter: "blur(40px)" }} />
+        <div className="absolute -bottom-16 right-1/4 w-64 h-64 rounded-full pointer-events-none"
+             style={{ background: "radial-gradient(circle, rgba(0,212,170,.14) 0%, transparent 70%)", filter: "blur(40px)" }} />
+
+        <div className="relative max-w-4xl mx-auto">
+          <div className="text-center mb-10">
+            <h2 className="text-3xl font-extrabold text-white tracking-tight">
+              Цифры говорят сами за себя
+            </h2>
+            <p className="text-sm mt-2" style={{ color: "rgba(255,255,255,.50)" }}>
+              Растём каждый день вместе с нашими пользователями
+            </p>
+          </div>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+            {[
+              { value: stats.totalTasks,  label: "Задач создано",       suffix: "+"  },
+              { value: stats.totalUsers,  label: "Пользователей",        suffix: "+"  },
+              { value: stats.doneTasks,   label: "Успешно выполнено",    suffix: ""   },
+              { value: 98,               label: "% довольных клиентов",  suffix: "%"  },
+            ].map((s, i) => (
+              <div
+                key={i}
+                className="text-center animate-fade-up"
+                style={{ animationDelay: `${i * 120}ms` }}
+              >
+                <div
+                  className="text-4xl md:text-5xl font-extrabold mb-1"
+                  style={{
+                    background: "linear-gradient(135deg, #14A800, #00d4aa)",
+                    WebkitBackgroundClip: "text",
+                    backgroundClip: "text",
+                    WebkitTextFillColor: "transparent",
+                    color: "transparent",
+                  }}
+                >
+                  {s.value.toLocaleString("ru-RU")}{s.suffix}
+                </div>
+                <p className="text-sm font-medium" style={{ color: "rgba(255,255,255,.60)" }}>{s.label}</p>
+              </div>
             ))}
           </div>
         </div>

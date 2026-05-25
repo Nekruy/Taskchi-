@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useSession, signOut } from "next-auth/react";
 import { useState, useRef, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
+import { TaskchiLogo } from "@/components/TaskchiLogo";
 
 interface Notification {
   id: string;
@@ -97,14 +98,8 @@ export function Navbar() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 h-16 flex items-center gap-4">
 
         {/* ── Logo ── */}
-        <Link href="/" className="flex items-center gap-2 shrink-0 select-none group">
-          <div
-            className="w-8 h-8 rounded-xl flex items-center justify-center text-white text-lg font-extrabold shadow-sm group-hover:shadow-md transition-shadow"
-            style={{ background: "linear-gradient(135deg, #14A800, #00d4aa)" }}
-          >
-            ✓
-          </div>
-          <span className="font-extrabold text-xl tracking-tight gradient-text">Taskchi</span>
+        <Link href="/" className="shrink-0 select-none">
+          <TaskchiLogo size="sm" variant="light" />
         </Link>
 
         {/* ── Search bar (desktop) ── */}

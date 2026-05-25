@@ -48,9 +48,18 @@ type DashData = {
 
 type Tab = "active" | "review" | "done" | "cancelled";
 
-function StatCard({ label, value }: { label: string; value: string | number }) {
+function StatCard({ label, value, delay = 0 }: { label: string; value: string | number; delay?: number }) {
   return (
-    <div className="bg-white rounded-2xl border border-gray-100 p-4">
+    <div
+      className="bg-white rounded-2xl border border-[#e8f5e8] p-4 animate-scale-in"
+      style={{
+        animationDelay: `${delay}ms`,
+        boxShadow: "0 2px 12px rgba(20,168,0,.06)",
+        transition: "box-shadow .2s, transform .2s",
+      }}
+      onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.boxShadow = "0 6px 24px rgba(20,168,0,.14)"; (e.currentTarget as HTMLElement).style.transform = "translateY(-2px)"; }}
+      onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.boxShadow = "0 2px 12px rgba(20,168,0,.06)"; (e.currentTarget as HTMLElement).style.transform = ""; }}
+    >
       <p className="text-xs text-gray-500 mb-1">{label}</p>
       <p className="text-xl font-bold text-gray-900">{value}</p>
     </div>
@@ -315,29 +324,80 @@ export default function CustomerDashboardPage() {
         </div>
       )}
 
-      {/* Header */}
-      <div className="bg-white border-b border-gray-100 px-4 py-4 sticky top-0 z-10">
-        <h1 className="text-xl font-bold text-gray-900">Панель заказчика</h1>
+      {/* ── Animated gradient hero header ── */}
+      <div
+        className="relative overflow-hidden px-4 pt-8 pb-6"
+        style={{ background: "linear-gradient(135deg, #0d1f0d 0%, #0a2a1a 50%, #061a0a 100%)" }}
+      >
+        <div className="absolute -top-8 -right-8 w-48 h-48 rounded-full pointer-events-none"
+             style={{ background: "radial-gradient(circle, rgba(20,168,0,.35) 0%, transparent 65%)", filter: "blur(30px)" }} />
+        <div className="absolute -bottom-6 left-1/4 w-40 h-40 rounded-full pointer-events-none"
+             style={{ background: "radial-gradient(circle, rgba(0,212,170,.25) 0%, transparent 65%)", filter: "blur(30px)" }} />
+
+        <div className="relative max-w-2xl mx-auto">
+          <div className="flex items-center gap-4">
+            <div
+              className="w-14 h-14 rounded-2xl flex items-center justify-center text-2xl shrink-0"
+              style={{ background: "linear-gradient(135deg, #14A800, #00d4aa)", boxShadow: "0 4px 20px rgba(20,168,0,.4)" }}
+            >
+              📋
+            </div>
+            <div className="animate-fade-up">
+              <p className="text-xs font-semibold uppercase tracking-widest mb-0.5" style={{ color: "rgba(255,255,255,.5)" }}>
+                Панель заказчика
+              </p>
+              <h1 className="text-xl font-extrabold text-white">Мои поручения</h1>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-3 gap-3 mt-5">
+            {[
+              { label: "Активных",    value: activeTasks.length + reviewTasks.length },
+              { label: "Завершённых", value: completedTasks.length },
+              { label: "Потрачено",   value: `${totalSpent.toLocaleString()} с.` },
+            ].map((s, i) => (
+              <div
+                key={i}
+                className="rounded-xl px-3 py-2 text-center animate-scale-in"
+                style={{
+                  background: "rgba(255,255,255,.08)",
+                  border: "1px solid rgba(255,255,255,.10)",
+                  animationDelay: `${i * 80}ms`,
+                }}
+              >
+                <p className="text-base font-extrabold text-white leading-tight">{s.value}</p>
+                <p className="text-xs mt-0.5" style={{ color: "rgba(255,255,255,.50)" }}>{s.label}</p>
+              </div>
+            ))}
+          </div>
+        </div>
       </div>
 
       <div className="max-w-2xl mx-auto px-4 py-5 space-y-5">
 
         {/* A) Stats */}
         <div className="grid grid-cols-2 gap-3">
-          <StatCard label="Активных задач"    value={activeTasks.length + reviewTasks.length} />
-          <StatCard label="Завершённых задач"  value={completedTasks.length} />
-          <StatCard label="Потрачено"          value={`${totalSpent.toLocaleString()} сом`} />
-          <StatCard label="Исполнителей"       value={recentExecutors.length > 0
+          <StatCard label="Активных задач"    value={activeTasks.length + reviewTasks.length} delay={0}   />
+          <StatCard label="Завершённых задач"  value={completedTasks.length}                   delay={80}  />
+          <StatCard label="Потрачено"          value={`${totalSpent.toLocaleString()} сом`}    delay={160} />
+          <StatCard label="Ср. рейтинг исп."  value={recentExecutors.length > 0
             ? `${(recentExecutors.reduce((s, e) => s + e.rating, 0) / recentExecutors.length).toFixed(1)} ⭐`
-            : "—"} />
+            : "—"} delay={240} />
         </div>
 
-        {/* B) Create button */}
+        {/* B) Create button — pulse-green CTA */}
         <Link
           href="/tasks/create"
-          className="flex items-center justify-center gap-2 w-full py-4 bg-[#14A800] hover:bg-[#0d8c00] text-white font-bold rounded-2xl text-base transition-colors shadow-sm shadow-green-200"
+          className="flex items-center justify-center gap-2 w-full py-4 text-white font-bold rounded-2xl text-base animate-pulse-green"
+          style={{
+            background: "linear-gradient(135deg, #14A800, #00d4aa)",
+            boxShadow: "0 4px 20px rgba(20,168,0,.30)",
+          }}
         >
-          + Создать задачу
+          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 4v16m8-8H4" />
+          </svg>
+          Создать задачу
         </Link>
 
         {/* C) Task tabs */}
@@ -369,14 +429,15 @@ export default function CustomerDashboardPage() {
                 <p className="text-gray-400 text-sm">Нет задач в этой категории</p>
               </div>
             ) : (
-              shownTasks.map((task) => (
+              shownTasks.map((task, i) => (
+                <div key={task.id} className="animate-fade-up" style={{ animationDelay: `${i * 50}ms` }}>
                 <TaskCard
-                  key={task.id}
                   task={task}
                   tab={tab}
                   onApprove={tab === "review" ? approveTask : undefined}
                   onDispute={tab === "review" ? setDisputeTaskId : undefined}
                 />
+                </div>
               ))
             )}
           </div>
