@@ -132,6 +132,7 @@ model User {
   disputesResolved     Dispute[]  @relation("DisputeResolver")
   verification         Verification?
   passwordResetTokens  PasswordResetToken[]
+  notifications        Notification[]
 
   @@map("users")
 }
@@ -321,4 +322,20 @@ model PasswordResetToken {
   createdAt DateTime @default(now())
 
   @@map("password_reset_tokens")
+}
+
+model Notification {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  type      String   // OFFER_ACCEPTED | OFFER_REJECTED | TASK_COMPLETED | REVIEW_REQUESTED | NEW_OFFER | TASK_REVIEW
+  title     String
+  body      String
+  isRead    Boolean  @default(false)
+  taskId    String?
+  link      String?
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+  @@map("notifications")
 }

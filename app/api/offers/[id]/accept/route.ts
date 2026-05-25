@@ -37,7 +37,7 @@ export async function POST(
 
   const commission = calculateCommission(offer.price);
 
-  // Transaction: accept offer, reject others, start task, create escrow & chat
+  // Transaction: accept offer, reject others, start task, create escrow, chat & notification
   await prisma.$transaction(async (tx) => {
     // Accept this offer
     await tx.offer.update({
@@ -68,17 +68,32 @@ export async function POST(
       },
     });
 
-    // Create chat
-    await tx.chat.create({
+    // Create chat (upsert-safe: chat has unique taskId)
+    const existingChat = await tx.chat.findUnique({ where: { taskId: offer.taskId } });
+    if (!existingChat) {
+      await tx.chat.create({
+        data: {
+          taskId: offer.taskId,
+          customerId: session.user.id,
+          executorId: offer.executorId,
+        },
+      });
+    }
+
+    // In-app notification for executor
+    await tx.notification.create({
       data: {
+        userId: offer.executorId,
+        type: "OFFER_ACCEPTED",
+        title: "Ваш отклик принят!",
+        body: `Заказчик ${offer.task.creator.name} принял ваш отклик на задачу «${offer.task.title}». Откройте чат!`,
         taskId: offer.taskId,
-        customerId: session.user.id,
-        executorId: offer.executorId,
+        link: `/tasks/${offer.taskId}`,
       },
     });
   });
 
-  // Notify executor
+  // Telegram notification to executor
   await notifyOfferAccepted({
     executorTelegramId: offer.executor.telegramId || undefined,
     taskTitle: offer.task.title,

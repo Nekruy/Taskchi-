@@ -3,6 +3,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { TaskDetailClient } from "./TaskDetailClient";
+import { Suspense } from "react";
 
 export const dynamic = "force-dynamic";
 
@@ -18,7 +19,7 @@ export async function generateMetadata({ params }: { params: { id: string } }) {
   };
 }
 
-export default async function TaskDetailPage({ params }: { params: { id: string } }) {
+async function TaskDetailServer({ params }: { params: { id: string } }) {
   const [task, session] = await Promise.all([
     prisma.task.findUnique({
       where: { id: params.id },
@@ -52,4 +53,16 @@ export default async function TaskDetailPage({ params }: { params: { id: string 
   if (!task) notFound();
 
   return <TaskDetailClient task={task as never} session={session} />;
+}
+
+export default function TaskDetailPage({ params }: { params: { id: string } }) {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="animate-spin w-8 h-8 border-2 border-[#14A800] border-t-transparent rounded-full" />
+      </div>
+    }>
+      <TaskDetailServer params={params} />
+    </Suspense>
+  );
 }

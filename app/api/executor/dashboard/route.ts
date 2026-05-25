@@ -26,7 +26,6 @@ export async function GET(req: NextRequest) {
         headline: true,
         about: true,
         createdAt: true,
-        // New executor profile fields
         lastName: true,
         gender: true,
         birthDate: true,
@@ -40,12 +39,15 @@ export async function GET(req: NextRequest) {
     }),
     prisma.task.findMany({
       where: { executorId: userId, status: "IN_PROGRESS" },
-      include: { creator: { select: { name: true } } },
+      include: {
+        creator: { select: { id: true, name: true } },
+        chat: { select: { id: true } },
+      },
       orderBy: { updatedAt: "desc" },
     }),
     prisma.task.findMany({
       where: { executorId: userId, status: "DONE" },
-      include: { creator: { select: { name: true } } },
+      include: { creator: { select: { id: true, name: true } } },
       orderBy: { updatedAt: "desc" },
     }),
   ]);

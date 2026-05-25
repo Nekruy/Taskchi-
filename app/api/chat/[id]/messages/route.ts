@@ -54,9 +54,10 @@ export async function POST(
     return NextResponse.json({ error: "Необходима авторизация" }, { status: 401 });
   }
 
-  const { content } = await req.json();
+  const body = await req.json();
+  const { content, imageUrl } = body;
 
-  if (!content?.trim()) {
+  if (!content?.trim() && !imageUrl) {
     return NextResponse.json({ error: "Сообщение не может быть пустым" }, { status: 400 });
   }
 
@@ -78,7 +79,12 @@ export async function POST(
   }
 
   const message = await prisma.message.create({
-    data: { chatId: params.id, senderId: session.user.id, content: content.trim() },
+    data: {
+      chatId: params.id,
+      senderId: session.user.id,
+      content: content?.trim() ?? "",
+      ...(imageUrl ? { imageUrl } : {}),
+    },
     include: {
       sender: { select: { id: true, name: true, avatar: true } },
     },
@@ -89,12 +95,13 @@ export async function POST(
   const recipient =
     chat.customerId === session.user.id ? chat.executor : chat.customer;
 
+  const preview = imageUrl ? "📷 Фото" : content?.trim() ?? "";
   await notifyNewMessage({
     recipientTelegramId: recipient.telegramId || undefined,
     senderName: sender.name || "Пользователь",
     taskTitle: chat.task.title,
     chatId: params.id,
-    preview: content.trim(),
+    preview,
   });
 
   return NextResponse.json({ message }, { status: 201 });

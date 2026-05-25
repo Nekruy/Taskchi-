@@ -62,6 +62,27 @@ function CreateTaskInner() {
     if (q) setRawInput(q);
   }, [searchParams]);
 
+  // Pre-fill from repeat=taskId
+  useEffect(() => {
+    const repeatId = searchParams.get("repeat");
+    if (!repeatId) return;
+    fetch(`/api/tasks/${repeatId}`)
+      .then((r) => r.json())
+      .then(({ task }) => {
+        if (!task) return;
+        setForm((prev) => ({
+          ...prev,
+          title: task.title ?? "",
+          description: task.description ?? "",
+          category: task.category ?? "SHOPPING",
+          budget: task.budget?.toString() ?? "",
+          address: task.address ?? "",
+          city: task.city ?? "Душанбе",
+        }));
+        setShowManual(true);
+      });
+  }, [searchParams]);
+
   function update(field: string, value: string | boolean | number) {
     setForm((prev) => ({ ...prev, [field]: value }));
   }
@@ -148,12 +169,20 @@ function CreateTaskInner() {
     );
   }
 
+  const isRepeat = Boolean(searchParams.get("repeat"));
+
   return (
     <div className="max-w-2xl mx-auto px-4 py-10">
       {/* Header */}
       <div className="mb-8">
-        <h1 className="text-3xl font-extrabold text-gray-900 mb-2">Новое поручение</h1>
-        <p className="text-gray-500">Опишите задачу — AI заполнит все детали автоматически</p>
+        <h1 className="text-3xl font-extrabold text-gray-900 mb-2">
+          {isRepeat ? "🔄 Повторить поручение" : "Новое поручение"}
+        </h1>
+        <p className="text-gray-500">
+          {isRepeat
+            ? "Данные заполнены из предыдущего заказа — при необходимости отредактируйте"
+            : "Опишите задачу — AI заполнит все детали автоматически"}
+        </p>
       </div>
 
       {error && (
@@ -165,106 +194,110 @@ function CreateTaskInner() {
         </div>
       )}
 
-      {/* AI Mode — primary */}
-      <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden mb-4">
-        {/* AI header */}
-        <div className="bg-gradient-to-r from-[#14A800] to-[#0d8c00] px-5 py-4 text-white">
-          <div className="flex items-center gap-3">
-            <div className="w-9 h-9 bg-white/20 rounded-xl flex items-center justify-center text-xl">
-              🤖
-            </div>
-            <div>
-              <h2 className="font-bold">AI-создание</h2>
-              <p className="text-green-100 text-xs">Напишите как другу — AI всё поймёт</p>
-            </div>
-            <span className="ml-auto text-xs bg-white/20 px-2.5 py-1 rounded-full font-medium">
-              Быстро
-            </span>
-          </div>
-        </div>
-
-        <div className="p-5">
-          <textarea
-            value={rawInput}
-            onChange={(e) => setRawInput(e.target.value)}
-            placeholder="Напишите что нужно сделать...&#10;&#10;Например: «Нужно забрать посылку с почты завтра утром, буду дома до 11:00, живу в районе Шохмансур»"
-            className="input-field resize-none h-36 mb-4 text-base leading-relaxed"
-            disabled={aiParsing}
-          />
-
-          <button
-            onClick={handleAIParse}
-            disabled={aiParsing || rawInput.trim().length < 10}
-            className="btn-primary w-full justify-center py-3 text-base mb-2"
-          >
-            {aiParsing ? (
-              <>
-                <svg className="animate-spin w-4 h-4" fill="none" viewBox="0 0 24 24">
-                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-                </svg>
-                AI анализирует задачу...
-              </>
-            ) : (
-              <>
-                ✨ AI заполнит автоматически
-              </>
-            )}
-          </button>
-
-          <p className="text-xs text-gray-400 text-center">
-            AI определит категорию, предложит бюджет и срок
-          </p>
-        </div>
-
-        {/* Example tasks */}
-        <div className="border-t border-gray-50 px-5 py-4">
-          <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-3">
-            Примеры поручений — нажмите чтобы попробовать:
-          </p>
-          <div className="space-y-2">
-            {EXAMPLES.map((ex) => (
-              <button
-                key={ex.text}
-                type="button"
-                onClick={() => { setRawInput(ex.text); setError(""); }}
-                disabled={aiParsing}
-                className="w-full text-left p-3 bg-gray-50 hover:bg-orange-50 hover:border-orange-200 border border-transparent rounded-xl transition-all group"
-              >
-                <div className="flex items-start justify-between gap-2">
-                  <p className="text-sm text-gray-700 group-hover:text-gray-900 leading-relaxed">
-                    {ex.text}
-                  </p>
-                  <span className="text-xs bg-white border border-gray-200 text-gray-500 px-2 py-0.5 rounded-full shrink-0 whitespace-nowrap">
-                    {ex.category}
-                  </span>
+      {/* AI Mode — only show if NOT repeat */}
+      {!isRepeat && (
+        <>
+          <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden mb-4">
+            {/* AI header */}
+            <div className="bg-gradient-to-r from-[#14A800] to-[#0d8c00] px-5 py-4 text-white">
+              <div className="flex items-center gap-3">
+                <div className="w-9 h-9 bg-white/20 rounded-xl flex items-center justify-center text-xl">
+                  🤖
                 </div>
-              </button>
-            ))}
-          </div>
-        </div>
-      </div>
+                <div>
+                  <h2 className="font-bold">AI-создание</h2>
+                  <p className="text-green-100 text-xs">Напишите как другу — AI всё поймёт</p>
+                </div>
+                <span className="ml-auto text-xs bg-white/20 px-2.5 py-1 rounded-full font-medium">
+                  Быстро
+                </span>
+              </div>
+            </div>
 
-      {/* Manual toggle */}
-      <button
-        type="button"
-        onClick={() => setShowManual(!showManual)}
-        className="w-full flex items-center justify-center gap-2 text-sm text-gray-500 hover:text-gray-700 py-2 transition-colors"
-      >
-        <svg className={`w-4 h-4 transition-transform ${showManual ? "rotate-180" : ""}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-        </svg>
-        {showManual ? "Скрыть ручное заполнение" : "Заполнить вручную ↓"}
-      </button>
+            <div className="p-5">
+              <textarea
+                value={rawInput}
+                onChange={(e) => setRawInput(e.target.value)}
+                placeholder="Напишите что нужно сделать...&#10;&#10;Например: «Нужно забрать посылку с почты завтра утром, буду дома до 11:00, живу в районе Шохмансур»"
+                className="input-field resize-none h-36 mb-4 text-base leading-relaxed"
+                disabled={aiParsing}
+              />
+
+              <button
+                onClick={handleAIParse}
+                disabled={aiParsing || rawInput.trim().length < 10}
+                className="btn-primary w-full justify-center py-3 text-base mb-2"
+              >
+                {aiParsing ? (
+                  <>
+                    <svg className="animate-spin w-4 h-4" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                    </svg>
+                    AI анализирует задачу...
+                  </>
+                ) : (
+                  <>✨ AI заполнит автоматически</>
+                )}
+              </button>
+
+              <p className="text-xs text-gray-400 text-center">
+                AI определит категорию, предложит бюджет и срок
+              </p>
+            </div>
+
+            {/* Example tasks */}
+            <div className="border-t border-gray-50 px-5 py-4">
+              <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-3">
+                Примеры поручений — нажмите чтобы попробовать:
+              </p>
+              <div className="space-y-2">
+                {EXAMPLES.map((ex) => (
+                  <button
+                    key={ex.text}
+                    type="button"
+                    onClick={() => { setRawInput(ex.text); setError(""); }}
+                    disabled={aiParsing}
+                    className="w-full text-left p-3 bg-gray-50 hover:bg-orange-50 hover:border-orange-200 border border-transparent rounded-xl transition-all group"
+                  >
+                    <div className="flex items-start justify-between gap-2">
+                      <p className="text-sm text-gray-700 group-hover:text-gray-900 leading-relaxed">
+                        {ex.text}
+                      </p>
+                      <span className="text-xs bg-white border border-gray-200 text-gray-500 px-2 py-0.5 rounded-full shrink-0 whitespace-nowrap">
+                        {ex.category}
+                      </span>
+                    </div>
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          {/* Manual toggle */}
+          <button
+            type="button"
+            onClick={() => setShowManual(!showManual)}
+            className="w-full flex items-center justify-center gap-2 text-sm text-gray-500 hover:text-gray-700 py-2 transition-colors"
+          >
+            <svg className={`w-4 h-4 transition-transform ${showManual ? "rotate-180" : ""}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+            </svg>
+            {showManual ? "Скрыть ручное заполнение" : "Заполнить вручную ↓"}
+          </button>
+        </>
+      )}
 
       {/* Manual form */}
-      {showManual && (
+      {(showManual || isRepeat) && (
         <form onSubmit={handleManualSubmit} className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6 mt-3 space-y-5 animate-fade-in">
           <div className="flex items-center gap-2 mb-1">
             <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
             </svg>
-            <h3 className="font-bold text-gray-800">Ручное заполнение</h3>
+            <h3 className="font-bold text-gray-800">
+              {isRepeat ? "Данные из предыдущего заказа" : "Ручное заполнение"}
+            </h3>
           </div>
 
           <div>
@@ -411,7 +444,7 @@ function CreateTaskInner() {
                 </svg>
                 Создаём поручение...
               </>
-            ) : "Создать поручение"}
+            ) : isRepeat ? "🔄 Создать повторный заказ" : "Создать поручение"}
           </button>
         </form>
       )}

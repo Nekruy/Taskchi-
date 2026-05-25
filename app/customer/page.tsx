@@ -8,6 +8,8 @@ import Link from "next/link";
 const CATEGORY_ICONS: Record<string, string> = {
   CHILDREN: "🧒", SHOPPING: "🛒", DELIVERY: "🚗",
   QUEUE: "⏰", HOUSEHOLD: "🏠", ONLINE: "💻",
+  CLEANING: "🧹", DRIVER: "🚘", MOVING: "📦",
+  COOKING: "🍳", PHOTO: "📷",
 };
 const STATUS_LABELS: Record<string, string> = {
   OPEN: "Открыта", IN_PROGRESS: "В работе", REVIEW: "На проверке",
@@ -55,7 +57,91 @@ function StatCard({ label, value }: { label: string; value: string | number }) {
   );
 }
 
-function TaskCard({ task, tab }: { task: TaskRow; tab: Tab }) {
+// Dispute modal
+function DisputeModal({
+  taskId,
+  onClose,
+  onSubmit,
+}: {
+  taskId: string;
+  onClose: () => void;
+  onSubmit: () => void;
+}) {
+  const [reason, setReason] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+
+  async function submit() {
+    if (!reason.trim()) { setError("Опишите причину спора"); return; }
+    setLoading(true);
+    const res = await fetch("/api/disputes", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ taskId, reason }),
+    });
+    setLoading(false);
+    if (res.ok) {
+      onSubmit();
+    } else {
+      const d = await res.json();
+      setError(d.error ?? "Ошибка");
+    }
+  }
+
+  return (
+    <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+      <div className="bg-white rounded-2xl p-6 max-w-sm w-full shadow-xl">
+        <h3 className="font-bold text-gray-900 text-lg mb-2">⚠️ Открыть спор</h3>
+        <p className="text-sm text-gray-500 mb-4">
+          Опишите проблему. Администратор рассмотрит ваш спор и свяжется с вами.
+        </p>
+        <textarea
+          value={reason}
+          onChange={(e) => setReason(e.target.value)}
+          placeholder="Исполнитель не выполнил задачу / качество не соответствует..."
+          className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm resize-none h-24 mb-3 focus:outline-none focus:border-red-400"
+        />
+        {error && <p className="text-xs text-red-600 mb-3">{error}</p>}
+        <div className="flex gap-3">
+          <button
+            onClick={onClose}
+            className="flex-1 py-2.5 border border-gray-200 rounded-xl text-sm font-semibold text-gray-600 hover:bg-gray-50"
+          >
+            Отмена
+          </button>
+          <button
+            onClick={submit}
+            disabled={loading}
+            className="flex-1 py-2.5 bg-red-600 text-white rounded-xl text-sm font-semibold hover:bg-red-700 disabled:opacity-60"
+          >
+            {loading ? "..." : "Открыть спор"}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function TaskCard({
+  task,
+  tab,
+  onApprove,
+  onDispute,
+}: {
+  task: TaskRow;
+  tab: Tab;
+  onApprove?: (id: string) => Promise<void>;
+  onDispute?: (id: string) => void;
+}) {
+  const [approving, setApproving] = useState(false);
+
+  async function handleApprove() {
+    if (!onApprove) return;
+    setApproving(true);
+    await onApprove(task.id);
+    setApproving(false);
+  }
+
   return (
     <div className="bg-white border border-gray-100 rounded-2xl p-4 space-y-3">
       <div className="flex items-start justify-between gap-2">
@@ -81,32 +167,50 @@ function TaskCard({ task, tab }: { task: TaskRow; tab: Tab }) {
         </div>
       </div>
 
-      <div className="flex gap-2 pt-1 border-t border-gray-50">
+      <div className="flex gap-2 pt-1 border-t border-gray-50 flex-wrap">
         {tab === "active" && (
           <Link href={`/tasks/${task.id}`}
             className="flex-1 text-center text-xs font-semibold py-2 bg-[#14A800] text-white rounded-xl hover:bg-[#0d8c00] transition-colors">
             Смотреть отклики ({task._count.offers})
           </Link>
         )}
+
         {tab === "review" && (
           <>
-            <Link href={`/tasks/${task.id}`}
-              className="flex-1 text-center text-xs font-semibold py-2 bg-green-600 text-white rounded-xl hover:bg-green-700 transition-colors">
-              Подтвердить выполнение
-            </Link>
-            <Link href={`/tasks/${task.id}`}
-              className="flex-1 text-center text-xs font-semibold py-2 border border-red-300 text-red-600 rounded-xl hover:bg-red-50 transition-colors">
-              Открыть спор
-            </Link>
+            <button
+              onClick={handleApprove}
+              disabled={approving}
+              className="flex-1 text-center text-xs font-semibold py-2 bg-green-600 text-white rounded-xl hover:bg-green-700 transition-colors disabled:opacity-60"
+            >
+              {approving ? "..." : "✅ Принять работу"}
+            </button>
+            <button
+              onClick={() => onDispute?.(task.id)}
+              className="flex-1 text-center text-xs font-semibold py-2 border border-red-300 text-red-600 rounded-xl hover:bg-red-50 transition-colors"
+            >
+              ⚠️ Открыть спор
+            </button>
           </>
         )}
-        {tab === "done" && !task.hasReview && task.executor && (
-          <Link href={`/tasks/${task.id}`}
-            className="flex-1 text-center text-xs font-semibold py-2 border border-[#14A800] text-[#14A800] rounded-xl hover:bg-green-50 transition-colors">
-            ⭐ Оставить отзыв
-          </Link>
+
+        {tab === "done" && (
+          <div className="flex gap-2 w-full">
+            {!task.hasReview && task.executor && (
+              <Link href={`/tasks/${task.id}?review=executor`}
+                className="flex-1 text-center text-xs font-semibold py-2 border border-[#14A800] text-[#14A800] rounded-xl hover:bg-green-50 transition-colors">
+                ⭐ Оставить отзыв
+              </Link>
+            )}
+            <Link
+              href={`/tasks/create?repeat=${task.id}`}
+              className="flex-1 text-center text-xs font-semibold py-2 bg-gray-100 text-gray-700 rounded-xl hover:bg-gray-200 transition-colors"
+            >
+              🔄 Заказать снова
+            </Link>
+          </div>
         )}
-        {tab !== "active" && tab !== "review" && (
+
+        {(tab === "cancelled" || (tab !== "active" && tab !== "review" && tab !== "done")) && (
           <Link href={`/tasks/${task.id}`}
             className="text-xs text-gray-500 hover:text-gray-700 py-1">
             Открыть →
@@ -125,6 +229,8 @@ export default function CustomerDashboardPage() {
   const [data, setData] = useState<DashData | null>(null);
   const [loading, setLoading] = useState(true);
   const [tab, setTab] = useState<Tab>("active");
+  const [disputeTaskId, setDisputeTaskId] = useState<string | null>(null);
+  const [toast, setToast] = useState<string | null>(null);
 
   useEffect(() => {
     if (status === "unauthenticated") router.replace("/login");
@@ -136,6 +242,38 @@ export default function CustomerDashboardPage() {
       .then((r) => r.json())
       .then((d) => { setData(d); setLoading(false); });
   }, [status]);
+
+  // Toast auto-dismiss
+  useEffect(() => {
+    if (!toast) return;
+    const t = setTimeout(() => setToast(null), 4000);
+    return () => clearTimeout(t);
+  }, [toast]);
+
+  async function approveTask(taskId: string) {
+    const res = await fetch(`/api/tasks/${taskId}/approve`, { method: "PATCH" });
+    if (res.ok) {
+      setData((d) => {
+        if (!d) return d;
+        const task = d.reviewTasks.find((t) => t.id === taskId);
+        if (!task) return d;
+        return {
+          ...d,
+          reviewTasks: d.reviewTasks.filter((t) => t.id !== taskId),
+          completedTasks: [{ ...task, status: "DONE", hasReview: false }, ...d.completedTasks],
+        };
+      });
+      setToast("✅ Работа принята! Оплата переведена исполнителю.");
+    } else {
+      const err = await res.json();
+      alert(err.error ?? "Ошибка");
+    }
+  }
+
+  function handleDisputeSubmit() {
+    setDisputeTaskId(null);
+    setToast("⚠️ Спор открыт. Администратор свяжется с вами.");
+  }
 
   if (status === "loading" || loading) {
     return (
@@ -159,6 +297,24 @@ export default function CustomerDashboardPage() {
 
   return (
     <div className="min-h-screen bg-gray-50 pb-24">
+      {/* Dispute modal */}
+      {disputeTaskId && (
+        <DisputeModal
+          taskId={disputeTaskId}
+          onClose={() => setDisputeTaskId(null)}
+          onSubmit={handleDisputeSubmit}
+        />
+      )}
+
+      {/* Toast */}
+      {toast && (
+        <div className="fixed top-4 left-1/2 -translate-x-1/2 z-50 animate-fade-in">
+          <div className="bg-gray-900 text-white px-5 py-3 rounded-2xl shadow-lg text-sm font-semibold max-w-xs text-center">
+            {toast}
+          </div>
+        </div>
+      )}
+
       {/* Header */}
       <div className="bg-white border-b border-gray-100 px-4 py-4 sticky top-0 z-10">
         <h1 className="text-xl font-bold text-gray-900">Панель заказчика</h1>
@@ -198,6 +354,11 @@ export default function CustomerDashboardPage() {
                 }`}
               >
                 {t.label}
+                {t.key === "review" && reviewTasks.length > 0 && (
+                  <span className="ml-1 w-4 h-4 bg-red-500 text-white text-[10px] rounded-full inline-flex items-center justify-center">
+                    {reviewTasks.length}
+                  </span>
+                )}
               </button>
             ))}
           </div>
@@ -208,7 +369,15 @@ export default function CustomerDashboardPage() {
                 <p className="text-gray-400 text-sm">Нет задач в этой категории</p>
               </div>
             ) : (
-              shownTasks.map((task) => <TaskCard key={task.id} task={task} tab={tab} />)
+              shownTasks.map((task) => (
+                <TaskCard
+                  key={task.id}
+                  task={task}
+                  tab={tab}
+                  onApprove={tab === "review" ? approveTask : undefined}
+                  onDispute={tab === "review" ? setDisputeTaskId : undefined}
+                />
+              ))
             )}
           </div>
         </div>

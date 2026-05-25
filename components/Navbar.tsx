@@ -2,21 +2,61 @@
 
 import Link from "next/link";
 import { useSession, signOut } from "next-auth/react";
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
+
+interface Notification {
+  id: string;
+  type: string;
+  title: string;
+  body: string;
+  isRead: boolean;
+  taskId?: string | null;
+  link?: string | null;
+  createdAt: string;
+}
 
 export function Navbar() {
   const { data: session } = useSession();
   const [menuOpen, setMenuOpen]     = useState(false);
   const [dropdownOpen, setDropdown] = useState(false);
   const [searchQuery, setSearch]    = useState("");
+  const [bellOpen, setBellOpen]     = useState(false);
+  const [notifications, setNotifications] = useState<Notification[]>([]);
+  const [unreadCount, setUnreadCount]     = useState(0);
   const dropdownRef = useRef<HTMLDivElement>(null);
+  const bellRef     = useRef<HTMLDivElement>(null);
   const router = useRouter();
 
+  // Fetch notifications
+  const fetchNotifications = useCallback(async () => {
+    if (!session) return;
+    try {
+      const res = await fetch("/api/notifications");
+      if (res.ok) {
+        const data = await res.json();
+        setNotifications(data.notifications ?? []);
+        setUnreadCount(data.unreadCount ?? 0);
+      }
+    } catch {
+      // silently fail
+    }
+  }, [session]);
+
+  useEffect(() => {
+    if (!session) return;
+    fetchNotifications();
+    const interval = setInterval(fetchNotifications, 30_000);
+    return () => clearInterval(interval);
+  }, [session, fetchNotifications]);
+
+  // Close dropdowns on outside click
   useEffect(() => {
     const close = (e: MouseEvent) => {
       if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node))
         setDropdown(false);
+      if (bellRef.current && !bellRef.current.contains(e.target as Node))
+        setBellOpen(false);
     };
     document.addEventListener("mousedown", close);
     return () => document.removeEventListener("mousedown", close);
@@ -27,6 +67,26 @@ export function Navbar() {
     const q = searchQuery.trim();
     router.push(q ? `/tasks?q=${encodeURIComponent(q)}` : "/tasks");
     setMenuOpen(false);
+  }
+
+  async function markAllRead() {
+    await fetch("/api/notifications", { method: "PATCH" });
+    setNotifications((prev) => prev.map((n) => ({ ...n, isRead: true })));
+    setUnreadCount(0);
+  }
+
+  async function markOneRead(id: string) {
+    await fetch(`/api/notifications/${id}`, { method: "PATCH" });
+    setNotifications((prev) =>
+      prev.map((n) => (n.id === id ? { ...n, isRead: true } : n))
+    );
+    setUnreadCount((c) => Math.max(0, c - 1));
+  }
+
+  function handleNotificationClick(n: Notification) {
+    if (!n.isRead) markOneRead(n.id);
+    setBellOpen(false);
+    if (n.link) router.push(n.link);
   }
 
   return (
@@ -103,6 +163,72 @@ export function Navbar() {
                 Поручение
               </Link>
 
+              {/* ── Notification Bell ── */}
+              <div className="relative" ref={bellRef}>
+                <button
+                  onClick={() => { setBellOpen(!bellOpen); if (!bellOpen) fetchNotifications(); }}
+                  className="relative w-9 h-9 rounded-xl flex items-center justify-center text-gray-600 hover:bg-green-50 transition-colors"
+                  title="Уведомления"
+                >
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+                      d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
+                  </svg>
+                  {unreadCount > 0 && (
+                    <span className="absolute -top-1 -right-1 w-4 h-4 bg-red-500 rounded-full text-white text-[10px] font-bold flex items-center justify-center animate-pulse">
+                      {unreadCount > 9 ? "9+" : unreadCount}
+                    </span>
+                  )}
+                </button>
+
+                {bellOpen && (
+                  <div
+                    className="absolute right-0 top-[calc(100%+8px)] w-80 bg-white rounded-2xl py-2 animate-fade-in z-50"
+                    style={{ border: "1px solid #e8f5e8", boxShadow: "0 12px 40px rgba(20,168,0,.12), 0 2px 8px rgba(0,0,0,.06)" }}
+                  >
+                    <div className="flex items-center justify-between px-4 py-2 border-b" style={{ borderColor: "#f0f9f0" }}>
+                      <span className="font-bold text-gray-900 text-sm">Уведомления</span>
+                      {unreadCount > 0 && (
+                        <button
+                          onClick={markAllRead}
+                          className="text-xs text-[#14A800] font-semibold hover:underline"
+                        >
+                          Отметить все прочитанными
+                        </button>
+                      )}
+                    </div>
+
+                    <div className="max-h-96 overflow-y-auto">
+                      {notifications.length === 0 ? (
+                        <p className="text-center text-gray-400 text-sm py-8">Нет уведомлений</p>
+                      ) : (
+                        notifications.slice(0, 5).map((n) => (
+                          <button
+                            key={n.id}
+                            onClick={() => handleNotificationClick(n)}
+                            className={`w-full text-left px-4 py-3 hover:bg-green-50 transition-colors border-b last:border-0 ${!n.isRead ? "bg-blue-50" : ""}`}
+                            style={{ borderColor: "#f0f9f0" }}
+                          >
+                            <div className="flex items-start gap-2">
+                              {!n.isRead && (
+                                <span className="w-2 h-2 bg-blue-500 rounded-full shrink-0 mt-1.5" />
+                              )}
+                              <div className={!n.isRead ? "" : "pl-4"}>
+                                <p className="text-sm font-semibold text-gray-900 leading-tight">{n.title}</p>
+                                <p className="text-xs text-gray-500 mt-0.5 leading-snug line-clamp-2">{n.body}</p>
+                                <p className="text-[10px] text-gray-400 mt-1">
+                                  {new Date(n.createdAt).toLocaleString("ru-RU", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" })}
+                                </p>
+                              </div>
+                            </div>
+                          </button>
+                        ))
+                      )}
+                    </div>
+                  </div>
+                )}
+              </div>
+
               {/* User dropdown */}
               <div className="relative" ref={dropdownRef}>
                 <button
@@ -149,7 +275,6 @@ export function Navbar() {
                     ].map((item) => (
                       <Link key={item.href} href={item.href}
                         className="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:text-[#14A800] transition-colors"
-                        style={{ /* hover handled by Tailwind */ }}
                         onClick={() => setDropdown(false)}
                         onMouseEnter={(e) => { e.currentTarget.style.background = "rgba(20,168,0,.05)"; }}
                         onMouseLeave={(e) => { e.currentTarget.style.background = ""; }}
@@ -184,18 +309,37 @@ export function Navbar() {
         </div>
 
         {/* ── Hamburger (mobile) ── */}
-        <button
-          className="md:hidden ml-auto p-2.5 rounded-xl text-gray-600 hover:bg-green-50 transition-colors"
-          onClick={() => setMenuOpen(!menuOpen)}
-          aria-label="Меню"
-        >
-          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            {menuOpen
-              ? <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 18L18 6M6 6l12 12" />
-              : <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M4 6h16M4 12h16M4 18h16" />
-            }
-          </svg>
-        </button>
+        <div className="md:hidden ml-auto flex items-center gap-2">
+          {/* Mobile bell */}
+          {session && (
+            <button
+              onClick={() => router.push("/executor/notifications")}
+              className="relative w-9 h-9 rounded-xl flex items-center justify-center text-gray-600"
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+                  d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
+              </svg>
+              {unreadCount > 0 && (
+                <span className="absolute -top-1 -right-1 w-4 h-4 bg-red-500 rounded-full text-white text-[10px] font-bold flex items-center justify-center">
+                  {unreadCount > 9 ? "9+" : unreadCount}
+                </span>
+              )}
+            </button>
+          )}
+          <button
+            className="p-2.5 rounded-xl text-gray-600 hover:bg-green-50 transition-colors"
+            onClick={() => setMenuOpen(!menuOpen)}
+            aria-label="Меню"
+          >
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              {menuOpen
+                ? <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 18L18 6M6 6l12 12" />
+                : <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M4 6h16M4 12h16M4 18h16" />
+              }
+            </svg>
+          </button>
+        </div>
       </div>
 
       {/* ── Mobile menu ── */}

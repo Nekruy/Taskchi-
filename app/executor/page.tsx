@@ -8,7 +8,6 @@ import { CATEGORY_MAP } from "@/lib/categories";
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
-/** Thin wrapper so template stays clean */
 function categoryIcon(key: string): string {
   return CATEGORY_MAP[key]?.emoji ?? "📋";
 }
@@ -30,7 +29,6 @@ type UserInfo = {
   isAvailable: boolean; skills: string[];
   headline: string | null; about: string | null;
   createdAt: string;
-  // New fields
   lastName: string | null;
   gender: string | null;
   birthDate: string | null;
@@ -41,15 +39,20 @@ type UserInfo = {
   workWeekends: boolean;
   profession: string | null;
 };
+
 type TaskRow = {
   id: string; title: string; budget: number; status: string;
   createdAt: string; updatedAt: string;
-  creator: { name: string };
+  creator: { id: string; name: string };
+  chat?: { id: string } | null;
+  deadline?: string | null;
 };
+
 type AvailableTask = {
   id: string; title: string; category: string; budget: number;
   address: string | null; city: string; deadline: string | null;
 };
+
 type DashData = { user: UserInfo; activeTasks: TaskRow[]; completedTasks: TaskRow[]; earned: number };
 
 // ─── Sub-components ───────────────────────────────────────────────────────────
@@ -79,6 +82,90 @@ function Toast({ message, onClose }: { message: string; onClose: () => void }) {
   );
 }
 
+// Active task card with "Mark done" button
+function ActiveTaskCard({
+  task,
+  onMarkDone,
+}: {
+  task: TaskRow;
+  onMarkDone: (id: string) => Promise<void>;
+}) {
+  const [marking, setMarking] = useState(false);
+  const [showModal, setShowModal] = useState(false);
+
+  async function confirmDone() {
+    setMarking(true);
+    setShowModal(false);
+    await onMarkDone(task.id);
+    setMarking(false);
+  }
+
+  return (
+    <>
+      {/* Confirmation modal */}
+      {showModal && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl p-6 max-w-sm w-full shadow-xl">
+            <h3 className="font-bold text-gray-900 text-lg mb-2">Отметить как выполненную?</h3>
+            <p className="text-sm text-gray-500 mb-5">
+              Заказчик должен подтвердить выполнение. После подтверждения оплата будет переведена.
+            </p>
+            <div className="flex gap-3">
+              <button
+                onClick={() => setShowModal(false)}
+                className="flex-1 py-2.5 border border-gray-200 rounded-xl text-sm font-semibold text-gray-600 hover:bg-gray-50"
+              >
+                Отмена
+              </button>
+              <button
+                onClick={confirmDone}
+                className="flex-1 py-2.5 bg-[#14A800] text-white rounded-xl text-sm font-semibold hover:bg-[#0d8c00]"
+              >
+                Да, выполнено
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      <div className="border border-gray-100 rounded-xl p-3 space-y-2">
+        <div className="flex items-start justify-between gap-2">
+          <div>
+            <p className="font-semibold text-gray-900 text-sm">{task.title}</p>
+            <p className="text-xs text-gray-500 mt-0.5">Заказчик: {task.creator.name}</p>
+            {task.deadline && (
+              <p className="text-xs text-gray-400">
+                Срок: {new Date(task.deadline).toLocaleDateString("ru-RU")}
+              </p>
+            )}
+          </div>
+          <div className="text-right shrink-0">
+            <p className="font-bold text-[#14A800] text-sm">{task.budget} сом</p>
+            <span className="text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full font-semibold">В работе</span>
+          </div>
+        </div>
+        <div className="flex gap-2 pt-1 border-t border-gray-50">
+          {task.chat?.id && (
+            <Link
+              href={`/chat/${task.chat.id}`}
+              className="flex-1 text-center text-xs font-semibold py-2 border border-[#14A800] text-[#14A800] rounded-xl hover:bg-green-50 transition-colors"
+            >
+              💬 Открыть чат
+            </Link>
+          )}
+          <button
+            onClick={() => setShowModal(true)}
+            disabled={marking}
+            className="flex-1 text-center text-xs font-semibold py-2 bg-[#14A800] text-white rounded-xl hover:bg-[#0d8c00] transition-colors disabled:opacity-60"
+          >
+            {marking ? "..." : "✅ Выполнено"}
+          </button>
+        </div>
+      </div>
+    </>
+  );
+}
+
 // ─── Main component ───────────────────────────────────────────────────────────
 
 export default function ExecutorDashboardPage() {
@@ -101,7 +188,6 @@ export default function ExecutorDashboardPage() {
   const [savingAbout, setSavingAbout] = useState(false);
   const headlineInputRef = useRef<HTMLInputElement>(null);
 
-  // Toast for new portfolio item
   const [toast, setToast] = useState(false);
 
   useEffect(() => {
@@ -118,7 +204,6 @@ export default function ExecutorDashboardPage() {
       setAvailable(tasks.tasks ?? []);
       setLoading(false);
 
-      // Portfolio toast: show if completedTasks count increased since last visit
       const prevCount = parseInt(
         typeof window !== "undefined"
           ? localStorage.getItem("tc_done_count") ?? "0"
@@ -134,7 +219,6 @@ export default function ExecutorDashboardPage() {
     });
   }, [status]);
 
-  // Focus headline input when editing starts
   useEffect(() => {
     if (editingHeadline) headlineInputRef.current?.focus();
   }, [editingHeadline]);
@@ -184,6 +268,21 @@ export default function ExecutorDashboardPage() {
     setSavingAbout(false);
   }
 
+  async function markTaskDone(taskId: string) {
+    const res = await fetch(`/api/tasks/${taskId}/complete`, { method: "PATCH" });
+    if (res.ok) {
+      // Optimistically remove from active, refresh
+      setData((d) => d ? {
+        ...d,
+        activeTasks: d.activeTasks.filter((t) => t.id !== taskId),
+      } : d);
+      setToast(true);
+    } else {
+      const err = await res.json();
+      alert(err.error ?? "Ошибка");
+    }
+  }
+
   function startEditHeadline() {
     if (!data) return;
     setHeadlineDraft(data.user.headline ?? "");
@@ -217,9 +316,6 @@ export default function ExecutorDashboardPage() {
     ...(completedTasks.length < 3 ? [{ icon: "🆕", label: "Новичок" }] : []),
   ];
 
-  const shownTasks = taskTab === "active" ? activeTasks : completedTasks;
-
-  // ─── Resume progress (10 steps × 10%) ───────────────────────────────────────
   const progressSteps = [
     { done: Boolean(user.lastName),      label: "Фамилия" },
     { done: Boolean(user.gender),        label: "Пол" },
@@ -239,7 +335,7 @@ export default function ExecutorDashboardPage() {
       {/* Toast */}
       {toast && (
         <Toast
-          message="Новая задача в портфолио! Ваш профиль стал сильнее"
+          message="Задача отправлена на проверку заказчику!"
           onClose={() => setToast(false)}
         />
       )}
@@ -342,7 +438,6 @@ export default function ExecutorDashboardPage() {
                   <button
                     onClick={startEditHeadline}
                     className="text-xs text-gray-400 hover:text-[#14A800] transition-colors"
-                    title="Редактировать"
                   >
                     ✏️ Изменить
                   </button>
@@ -476,30 +571,44 @@ export default function ExecutorDashboardPage() {
             ))}
           </div>
           <div className="space-y-3">
-            {shownTasks.length === 0 ? (
-              <p className="text-center text-gray-400 py-6 text-sm">
-                {taskTab === "active" ? "Нет активных задач" : "Нет завершённых задач"}
-              </p>
-            ) : shownTasks.map((task) => (
-              <Link
-                key={task.id}
-                href={`/tasks/${task.id}`}
-                className="block border border-gray-100 rounded-xl p-3 hover:border-[#14A800] transition-colors"
-              >
-                <div className="flex items-start justify-between gap-2">
-                  <div>
-                    <p className="font-semibold text-gray-900 text-sm">{task.title}</p>
-                    <p className="text-xs text-gray-500 mt-0.5">Заказчик: {task.creator.name}</p>
-                  </div>
-                  <div className="text-right shrink-0">
-                    <p className="font-bold text-[#14A800] text-sm">{task.budget} сом</p>
-                    <p className="text-xs text-gray-400 mt-0.5">
-                      {new Date(task.updatedAt).toLocaleDateString("ru-RU")}
-                    </p>
-                  </div>
-                </div>
-              </Link>
-            ))}
+            {taskTab === "active" ? (
+              activeTasks.length === 0 ? (
+                <p className="text-center text-gray-400 py-6 text-sm">Нет активных задач</p>
+              ) : (
+                activeTasks.map((task) => (
+                  <ActiveTaskCard
+                    key={task.id}
+                    task={task}
+                    onMarkDone={markTaskDone}
+                  />
+                ))
+              )
+            ) : (
+              completedTasks.length === 0 ? (
+                <p className="text-center text-gray-400 py-6 text-sm">Нет завершённых задач</p>
+              ) : (
+                completedTasks.map((task) => (
+                  <Link
+                    key={task.id}
+                    href={`/tasks/${task.id}`}
+                    className="block border border-gray-100 rounded-xl p-3 hover:border-[#14A800] transition-colors"
+                  >
+                    <div className="flex items-start justify-between gap-2">
+                      <div>
+                        <p className="font-semibold text-gray-900 text-sm">{task.title}</p>
+                        <p className="text-xs text-gray-500 mt-0.5">Заказчик: {task.creator.name}</p>
+                      </div>
+                      <div className="text-right shrink-0">
+                        <p className="font-bold text-[#14A800] text-sm">{task.budget} сом</p>
+                        <p className="text-xs text-gray-400 mt-0.5">
+                          {new Date(task.updatedAt).toLocaleDateString("ru-RU")}
+                        </p>
+                      </div>
+                    </div>
+                  </Link>
+                ))
+              )
+            )}
           </div>
         </div>
 
