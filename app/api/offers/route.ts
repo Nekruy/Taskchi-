@@ -82,10 +82,24 @@ export async function POST(req: NextRequest) {
       },
     });
 
-    // Notify task creator via Telegram
+    const executorName = executor?.name || "Исполнитель";
+
+    // In-app notification for customer
+    await prisma.notification.create({
+      data: {
+        userId: task.creatorId,
+        type: "NEW_OFFER",
+        title: "Новый отклик на вашу задачу!",
+        body: `${executorName} откликнулся на задачу «${task.title}» — ${price} сом`,
+        taskId: task.id,
+        link: `/tasks/${task.id}`,
+      },
+    });
+
+    // Telegram notification for customer
     await notifyNewOffer({
       customerTelegramId: task.creator.telegramId || undefined,
-      executorName: executor?.name || "Исполнитель",
+      executorName,
       taskTitle: task.title,
       taskId: task.id,
       offerPrice: price,
