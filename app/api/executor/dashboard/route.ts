@@ -8,7 +8,7 @@ export async function GET(req: NextRequest) {
 
   const userId = token.id as string;
 
-  const [user, activeTasks, completedTasks] = await Promise.all([
+  const [user, activeTasks, completedTasks, myOffers] = await Promise.all([
     prisma.user.findUnique({
       where: { id: userId },
       select: {
@@ -50,11 +50,30 @@ export async function GET(req: NextRequest) {
       include: { creator: { select: { id: true, name: true } } },
       orderBy: { updatedAt: "desc" },
     }),
+    prisma.offer.findMany({
+      where: { executorId: userId },
+      include: {
+        task: {
+          select: {
+            id: true,
+            title: true,
+            budget: true,
+            status: true,
+            category: true,
+            address: true,
+            createdAt: true,
+            creator: { select: { name: true, avatar: true, rating: true } },
+            chat: { select: { id: true } },
+          },
+        },
+      },
+      orderBy: { createdAt: "desc" },
+    }),
   ]);
 
   if (!user) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
   const earned = completedTasks.reduce((sum, t) => sum + t.budget, 0);
 
-  return NextResponse.json({ user, activeTasks, completedTasks, earned });
+  return NextResponse.json({ user, activeTasks, completedTasks, earned, myOffers });
 }

@@ -53,7 +53,32 @@ type AvailableTask = {
   address: string | null; city: string; deadline: string | null;
 };
 
-type DashData = { user: UserInfo; activeTasks: TaskRow[]; completedTasks: TaskRow[]; earned: number };
+type MyOffer = {
+  id: string;
+  price: number;
+  message: string;
+  status: string;
+  createdAt: string;
+  task: {
+    id: string;
+    title: string;
+    budget: number;
+    status: string;
+    category: string;
+    address: string | null;
+    createdAt: string;
+    creator: { name: string; avatar: string | null; rating: number };
+    chat?: { id: string } | null;
+  };
+};
+
+type DashData = {
+  user: UserInfo;
+  activeTasks: TaskRow[];
+  completedTasks: TaskRow[];
+  earned: number;
+  myOffers: MyOffer[];
+};
 
 // ─── Sub-components ───────────────────────────────────────────────────────────
 
@@ -176,7 +201,7 @@ export default function ExecutorDashboardPage() {
   const [data, setData] = useState<DashData | null>(null);
   const [available, setAvailable] = useState<AvailableTask[]>([]);
   const [loading, setLoading] = useState(true);
-  const [taskTab, setTaskTab] = useState<"active" | "done">("active");
+  const [taskTab, setTaskTab] = useState<"active" | "done" | "offers">("active");
   const [toggling, setToggling] = useState(false);
 
   // Resume editing
@@ -306,7 +331,7 @@ export default function ExecutorDashboardPage() {
   }
   if (!data) return null;
 
-  const { user, activeTasks, completedTasks, earned } = data;
+  const { user, activeTasks, completedTasks, earned, myOffers } = data;
   const isApproved = user.passportStatus === "APPROVED";
 
   const badges = [
@@ -553,37 +578,194 @@ export default function ExecutorDashboardPage() {
           </button>
         </div>
 
-        {/* D) My tasks */}
+        {/* D) My tasks + My offers */}
         <div className="bg-white rounded-2xl border border-gray-100 p-4">
-          <div className="flex gap-2 mb-4">
-            {(["active", "done"] as const).map((t) => (
-              <button
-                key={t}
-                onClick={() => setTaskTab(t)}
-                className={`px-4 py-1.5 rounded-xl text-sm font-semibold transition-all ${
-                  taskTab === t
-                    ? "bg-[#14A800] text-white"
-                    : "bg-gray-100 text-gray-600 hover:bg-gray-200"
-                }`}
-              >
-                {t === "active" ? `Активные (${activeTasks.length})` : `Завершённые (${completedTasks.length})`}
-              </button>
-            ))}
+          {/* ── Tab bar ── */}
+          <div className="flex gap-2 mb-4 flex-wrap">
+            {/* Active */}
+            <button
+              onClick={() => setTaskTab("active")}
+              className={`px-3 py-1.5 rounded-xl text-sm font-semibold transition-all whitespace-nowrap ${
+                taskTab === "active" ? "bg-[#14A800] text-white" : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+              }`}
+            >
+              Активные ({activeTasks.length})
+            </button>
+
+            {/* My offers */}
+            <button
+              onClick={() => setTaskTab("offers")}
+              className={`relative px-3 py-1.5 rounded-xl text-sm font-semibold transition-all whitespace-nowrap ${
+                taskTab === "offers" ? "bg-[#14A800] text-white" : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+              }`}
+            >
+              Мои отклики ({myOffers.length})
+              {/* pending badge */}
+              {myOffers.filter((o) => o.status === "PENDING").length > 0 && taskTab !== "offers" && (
+                <span className="absolute -top-1.5 -right-1.5 w-4 h-4 bg-amber-400 text-white text-[10px] font-bold rounded-full flex items-center justify-center">
+                  {myOffers.filter((o) => o.status === "PENDING").length}
+                </span>
+              )}
+            </button>
+
+            {/* Done */}
+            <button
+              onClick={() => setTaskTab("done")}
+              className={`px-3 py-1.5 rounded-xl text-sm font-semibold transition-all whitespace-nowrap ${
+                taskTab === "done" ? "bg-[#14A800] text-white" : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+              }`}
+            >
+              Завершённые ({completedTasks.length})
+            </button>
           </div>
+
+          {/* ── Offer stats strip (only on offers tab) ── */}
+          {taskTab === "offers" && myOffers.length > 0 && (() => {
+            const pending  = myOffers.filter((o) => o.status === "PENDING").length;
+            const accepted = myOffers.filter((o) => o.status === "ACCEPTED").length;
+            return (
+              <div className="flex gap-2 mb-4 flex-wrap">
+                <span className="text-xs font-semibold px-2.5 py-1 bg-amber-100 text-amber-700 rounded-full">
+                  ⏳ Ожидают: {pending}
+                </span>
+                <span className="text-xs font-semibold px-2.5 py-1 bg-green-100 text-green-700 rounded-full">
+                  ✅ Приняты: {accepted}
+                </span>
+                <span className="text-xs font-semibold px-2.5 py-1 bg-gray-100 text-gray-500 rounded-full">
+                  Всего: {myOffers.length}
+                </span>
+              </div>
+            );
+          })()}
+
+          {/* ── Content ── */}
           <div className="space-y-3">
-            {taskTab === "active" ? (
+
+            {/* ACTIVE tab */}
+            {taskTab === "active" && (
               activeTasks.length === 0 ? (
                 <p className="text-center text-gray-400 py-6 text-sm">Нет активных задач</p>
               ) : (
                 activeTasks.map((task) => (
-                  <ActiveTaskCard
-                    key={task.id}
-                    task={task}
-                    onMarkDone={markTaskDone}
-                  />
+                  <ActiveTaskCard key={task.id} task={task} onMarkDone={markTaskDone} />
                 ))
               )
-            ) : (
+            )}
+
+            {/* OFFERS tab */}
+            {taskTab === "offers" && (
+              myOffers.length === 0 ? (
+                <div className="text-center py-10">
+                  <div className="text-4xl mb-3">📭</div>
+                  <p className="text-gray-500 text-sm font-medium mb-1">
+                    Вы ещё не откликались на задачи
+                  </p>
+                  <p className="text-gray-400 text-xs mb-4">
+                    Найдите подходящую задачу и откликнитесь!
+                  </p>
+                  <Link
+                    href="/tasks"
+                    className="inline-block text-sm font-semibold px-5 py-2.5 bg-[#14A800] text-white rounded-xl hover:bg-[#0d8c00] transition-colors"
+                  >
+                    Смотреть задачи
+                  </Link>
+                </div>
+              ) : (
+                myOffers.map((offer) => {
+                  const statusMap: Record<string, { label: string; cls: string }> = {
+                    PENDING:   { label: "⏳ Ожидает ответа",      cls: "bg-amber-100 text-amber-700" },
+                    ACCEPTED:  { label: "✅ Принят!",              cls: "bg-green-100 text-green-700" },
+                    REJECTED:  { label: "❌ Не выбран",            cls: "bg-red-100 text-red-600" },
+                    WITHDRAWN: { label: "Отозван",                 cls: "bg-gray-100 text-gray-500" },
+                  };
+                  const taskStatusMap: Record<string, { label: string; cls: string }> = {
+                    OPEN:        { label: "Открыта",     cls: "bg-blue-100 text-blue-700" },
+                    IN_PROGRESS: { label: "В работе",    cls: "bg-blue-100 text-blue-700" },
+                    REVIEW:      { label: "На проверке", cls: "bg-yellow-100 text-yellow-700" },
+                    DONE:        { label: "Завершена",   cls: "bg-green-100 text-green-700" },
+                    CANCELLED:   { label: "Отменена",    cls: "bg-gray-100 text-gray-500" },
+                  };
+                  const offerSt  = statusMap[offer.status]          ?? { label: offer.status,      cls: "bg-gray-100 text-gray-500" };
+                  const taskSt   = taskStatusMap[offer.task.status]  ?? { label: offer.task.status, cls: "bg-gray-100 text-gray-500" };
+
+                  return (
+                    <div
+                      key={offer.id}
+                      className={`border rounded-xl p-3 space-y-2.5 ${
+                        offer.status === "ACCEPTED"
+                          ? "border-green-200 bg-green-50"
+                          : offer.status === "REJECTED"
+                          ? "border-red-100 bg-red-50/40"
+                          : "border-gray-100"
+                      }`}
+                    >
+                      {/* Row 1: category + title + budget */}
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="flex items-center gap-1.5 min-w-0">
+                          <span className="text-base shrink-0">{categoryIcon(offer.task.category)}</span>
+                          <p className="font-semibold text-gray-900 text-sm truncate">{offer.task.title}</p>
+                        </div>
+                        <p className="font-bold text-[#14A800] text-sm shrink-0">{offer.task.budget} сом</p>
+                      </div>
+
+                      {/* Row 2: customer + task status */}
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="text-xs text-gray-500">
+                          👤 {offer.task.creator.name}
+                          {offer.task.creator.rating > 0 && (
+                            <> · ⭐ {offer.task.creator.rating.toFixed(1)}</>
+                          )}
+                        </span>
+                        <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${taskSt.cls}`}>
+                          {taskSt.label}
+                        </span>
+                      </div>
+
+                      {/* Row 3: offer details */}
+                      <div className="bg-white/80 rounded-lg px-3 py-2 border border-gray-100">
+                        <div className="flex items-center justify-between mb-1">
+                          <span className="text-xs text-gray-500 font-medium">Ваш отклик</span>
+                          <span className="text-xs font-bold text-[#14A800]">{offer.price} сом</span>
+                        </div>
+                        <p className="text-xs text-gray-600 leading-relaxed line-clamp-2">{offer.message}</p>
+                      </div>
+
+                      {/* Row 4: offer status + date */}
+                      <div className="flex items-center justify-between gap-2">
+                        <span className={`text-xs font-semibold px-2.5 py-1 rounded-full ${offerSt.cls}`}>
+                          {offerSt.label}
+                          {offer.status === "ACCEPTED" && " Начинайте работу"}
+                        </span>
+                        <span className="text-[10px] text-gray-400">
+                          {new Date(offer.createdAt).toLocaleDateString("ru-RU")}
+                        </span>
+                      </div>
+
+                      {/* Row 5: actions */}
+                      <div className="flex gap-2 pt-0.5">
+                        <Link
+                          href={`/tasks/${offer.task.id}`}
+                          className="flex-1 text-center text-xs font-semibold py-1.5 border border-gray-200 text-gray-600 rounded-xl hover:bg-gray-50 hover:border-gray-300 transition-colors"
+                        >
+                          Смотреть задачу
+                        </Link>
+                        {offer.status === "ACCEPTED" && (
+                          <Link
+                            href={offer.task.chat?.id ? `/chat/${offer.task.chat.id}` : `/tasks/${offer.task.id}`}
+                            className="flex-1 text-center text-xs font-semibold py-1.5 bg-[#14A800] text-white rounded-xl hover:bg-[#0d8c00] transition-colors"
+                          >
+                            💬 Открыть чат
+                          </Link>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })
+              )
+            )}
+
+            {/* DONE tab */}
+            {taskTab === "done" && (
               completedTasks.length === 0 ? (
                 <p className="text-center text-gray-400 py-6 text-sm">Нет завершённых задач</p>
               ) : (
@@ -609,6 +791,7 @@ export default function ExecutorDashboardPage() {
                 ))
               )
             )}
+
           </div>
         </div>
 
