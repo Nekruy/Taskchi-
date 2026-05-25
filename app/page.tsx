@@ -125,7 +125,19 @@ export default async function HomePage() {
           ))}
         </div>
 
-        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 py-16 md:py-24">
+        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 py-12 md:py-20">
+
+          {/* ── Large centred logo at top of hero ── */}
+          <div className="flex justify-center mb-10">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src="/logo.svg"
+              alt="Taskchi"
+              className="animate-float"
+              style={{ height: 80, width: "auto" }}
+            />
+          </div>
+
           <div className="grid md:grid-cols-2 gap-12 items-center min-h-[520px]">
 
             {/* ── Left ── */}

@@ -4,7 +4,6 @@ import "./globals.css";
 import { Providers } from "./providers";
 import { Navbar } from "@/components/Navbar";
 import { NavigationProgress } from "@/components/NavigationProgress";
-import { TaskchiLogo } from "@/components/TaskchiLogo";
 import Link from "next/link";
 
 const inter = Inter({ subsets: ["latin", "cyrillic"] });
@@ -17,11 +16,32 @@ export const metadata: Metadata = {
   description:
     "Taskchi — найдите исполнителей для любых задач: доставка, покупки, уборка, очереди и многое другое. Быстро, безопасно, с эскроу-защитой.",
   keywords: ["Таджикистан", "задачи", "фриланс", "Душанбе", "помощь", "доставка"],
+  icons: {
+    icon: [
+      { url: "/logo-icon.svg", type: "image/svg+xml" },
+    ],
+    shortcut: "/logo-icon.svg",
+    apple:    "/logo-icon.svg",
+  },
   openGraph: {
-    title: "Taskchi — Маркетплейс задач",
+    title:       "Taskchi — Маркетплейс задач",
     description: "Hyperlocal маркетплейс задач для Таджикистана",
-    locale: "ru_RU",
-    type: "website",
+    locale:      "ru_RU",
+    type:        "website",
+    images: [
+      {
+        url:    "/logo.svg",
+        width:  210,
+        height: 60,
+        alt:    "Taskchi — Маркетплейс услуг",
+      },
+    ],
+  },
+  twitter: {
+    card:        "summary",
+    title:       "Taskchi — Маркетплейс задач",
+    description: "Любая задача за минуты в Таджикистане",
+    images:      ["/logo.svg"],
   },
 };
 
@@ -47,7 +67,7 @@ export default function RootLayout({
                   {/* Brand column */}
                   <div className="col-span-2 md:col-span-1">
                     <div className="mb-4">
-                      <TaskchiLogo size="sm" variant="dark" />
+                      <img src="/logo-dark.svg" alt="Taskchi" style={{ height: 36, width: "auto" }} />
                     </div>
                     <p className="text-sm leading-relaxed" style={{ color: "rgba(255,255,255,.45)" }}>
                       Любая задача — за минуты.<br />

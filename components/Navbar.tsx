@@ -4,7 +4,6 @@ import Link from "next/link";
 import { useSession, signOut } from "next-auth/react";
 import { useState, useRef, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
-import { TaskchiLogo } from "@/components/TaskchiLogo";
 
 interface Notification {
   id: string;
@@ -99,7 +98,13 @@ export function Navbar() {
 
         {/* ── Logo ── */}
         <Link href="/" className="shrink-0 select-none">
-          <TaskchiLogo size="sm" variant="light" />
+          {/* h-8 = 32px mobile, h-10 = 40px desktop */}
+          <img
+            src="/logo.svg"
+            alt="Taskchi"
+            className="h-8 md:h-10 w-auto"
+            style={{ display: "block" }}
+          />
         </Link>
 
         {/* ── Search bar (desktop) ── */}

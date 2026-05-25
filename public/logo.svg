@@ -1,0 +1,94 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 210 60" width="210" height="60" fill="none">
+
+  <!-- ── Background ── -->
+  <rect width="210" height="60" rx="14" fill="#f0fff4"/>
+
+  <defs>
+    <!-- Gradients for platform faces -->
+    <linearGradient id="l-top" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%"   stop-color="#14A800"/>
+      <stop offset="100%" stop-color="#00d4aa"/>
+    </linearGradient>
+    <linearGradient id="l-right" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%"   stop-color="#0d8c00"/>
+      <stop offset="100%" stop-color="#00b892"/>
+    </linearGradient>
+    <linearGradient id="l-left" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%"   stop-color="#1bcb06"/>
+      <stop offset="100%" stop-color="#00d4aa"/>
+    </linearGradient>
+    <!-- Glow filters -->
+    <filter id="l-glow" x="-30%" y="-30%" width="160%" height="160%">
+      <feGaussianBlur stdDeviation="1" result="blur"/>
+      <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+    <filter id="l-nglow" x="-60%" y="-60%" width="220%" height="220%">
+      <feGaussianBlur stdDeviation="1.8" result="blur"/>
+      <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+  </defs>
+
+  <!-- ── Animations ── -->
+  <style>
+    @keyframes l-node { 0%,100%{opacity:.88} 50%{opacity:1} }
+    @keyframes l-line { 0%,100%{opacity:.55} 50%{opacity:.90} }
+    @keyframes l-ring { 0%{r:5;opacity:.65} 100%{r:13;opacity:0} }
+    .l-node { animation: l-node 2.5s ease-in-out infinite }
+    .l-line { animation: l-line 2.4s ease-in-out infinite }
+    .l-ring { animation: l-ring 2s  ease-out  infinite }
+  </style>
+
+  <!-- ── Icon mark: 100×100 → 52×52, inset 4px ── -->
+  <svg x="4" y="4" width="52" height="52" viewBox="0 0 100 100" overflow="visible">
+    <!-- Platform faces -->
+    <path d="M50 12 L88 32 L50 52 L12 32 Z" fill="url(#l-top)"   opacity=".95"/>
+    <path d="M88 32 L88 62 L50 82 L50 52 Z" fill="url(#l-right)" opacity=".85"/>
+    <path d="M12 32 L12 62 L50 82 L50 52 Z" fill="url(#l-left)"  opacity=".75"/>
+    <!-- Edge lines -->
+    <path d="M50 12 L88 32 L50 52 L12 32 Z" stroke="rgba(255,255,255,.26)" stroke-width=".7" fill="none"/>
+    <path d="M88 32 L88 62 L50 82 L50 52 Z" stroke="rgba(255,255,255,.16)" stroke-width=".7" fill="none"/>
+    <path d="M12 32 L12 62 L50 82 L50 52 Z" stroke="rgba(255,255,255,.16)" stroke-width=".7" fill="none"/>
+    <!-- Connection lines -->
+    <g stroke="rgba(255,255,255,.72)" stroke-width=".9" filter="url(#l-glow)" class="l-line">
+      <line x1="50" y1="32" x2="34" y2="24"/>
+      <line x1="50" y1="32" x2="66" y2="24"/>
+      <line x1="50" y1="32" x2="74" y2="36"/>
+      <line x1="50" y1="32" x2="66" y2="44"/>
+      <line x1="50" y1="32" x2="34" y2="44"/>
+      <line x1="50" y1="32" x2="26" y2="36"/>
+      <line x1="34" y1="24" x2="66" y2="24"/>
+      <line x1="66" y1="24" x2="74" y2="36"/>
+      <line x1="74" y1="36" x2="66" y2="44"/>
+      <line x1="34" y1="44" x2="26" y2="36"/>
+    </g>
+    <!-- Outer nodes -->
+    <circle cx="34" cy="24" r="3.5" fill="white" opacity=".92" filter="url(#l-nglow)" class="l-node" style="animation-delay:0s"/>
+    <circle cx="66" cy="24" r="3.5" fill="white" opacity=".92" filter="url(#l-nglow)" class="l-node" style="animation-delay:.4s"/>
+    <circle cx="74" cy="36" r="3.5" fill="white" opacity=".92" filter="url(#l-nglow)" class="l-node" style="animation-delay:.8s"/>
+    <circle cx="66" cy="44" r="3.5" fill="white" opacity=".92" filter="url(#l-nglow)" class="l-node" style="animation-delay:1.2s"/>
+    <circle cx="34" cy="44" r="3.5" fill="white" opacity=".92" filter="url(#l-nglow)" class="l-node" style="animation-delay:1.6s"/>
+    <circle cx="26" cy="36" r="3.5" fill="white" opacity=".92" filter="url(#l-nglow)" class="l-node" style="animation-delay:2s"/>
+    <!-- Centre node + pulse ring -->
+    <circle cx="50" cy="32" r="8" fill="none" stroke="rgba(255,255,255,.38)" stroke-width="1" class="l-ring"/>
+    <circle cx="50" cy="32" r="5.5" fill="rgba(255,255,255,.22)" stroke="rgba(255,255,255,.82)" stroke-width="1"/>
+    <circle cx="50" cy="32" r="3" fill="white" filter="url(#l-nglow)" class="l-node"/>
+  </svg>
+
+  <!-- ── Wordmark ── -->
+  <!-- "Taskchi" with "chi" in brand green -->
+  <text
+    x="62" y="35"
+    font-family="Inter, system-ui, -apple-system, Helvetica Neue, sans-serif"
+    font-size="24" font-weight="800" letter-spacing="-0.6"
+    fill="#1a1a1a"
+  >Task<tspan fill="#14A800">chi</tspan></text>
+
+  <!-- Subtitle -->
+  <text
+    x="63" y="49"
+    font-family="Inter, system-ui, -apple-system, Helvetica Neue, sans-serif"
+    font-size="7.5" font-weight="600" letter-spacing="1.8"
+    fill="#6b7280"
+  >МАРКЕТПЛЕЙС УСЛУГ</text>
+
+</svg>
