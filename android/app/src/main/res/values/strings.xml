@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">Taskchi</string>
+    <string name="title_activity_main">Taskchi</string>
+    <string name="package_name">com.taskchi.app</string>
+    <string name="custom_url_scheme">com.taskchi.app</string>
+</resources>
