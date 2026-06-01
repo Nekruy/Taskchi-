@@ -490,3 +490,23 @@ body {
   mask-composite: exclude;
   pointer-events: none;
 }
+
+/* ══════════════════════════════════════════════════════════════════
+   MOBILE / PWA
+══════════════════════════════════════════════════════════════════ */
+.mobile-splash {
+  display: none;
+}
+
+@media (max-width: 768px) {
+  body {
+    overscroll-behavior: none;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .task-card {
+    min-height: 80px;
+    padding: 16px;
+    /* active touch feedback handled by Tailwind active:scale-95 */
+  }
+}

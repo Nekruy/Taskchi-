@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
 import { Providers } from "./providers";
@@ -6,12 +6,23 @@ import { Navbar } from "@/components/Navbar";
 import { NavigationProgress } from "@/components/NavigationProgress";
 import Link from "next/link";
 
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  maximumScale: 1,
+  userScalable: false,
+};
+
 const inter = Inter({ subsets: ["latin", "cyrillic"] });
 
 export const metadata: Metadata = {
   title: {
     default: "Taskchi — Любая задача за минуты в Таджикистане",
     template: "%s | Taskchi",
+  },
+  other: {
+    "mobile-web-app-capable": "yes",
+    "apple-mobile-web-app-capable": "yes",
   },
   description:
     "Taskchi — найдите исполнителей для любых задач: доставка, покупки, уборка, очереди и многое другое. Быстро, безопасно, с эскроу-защитой.",
@@ -57,10 +68,10 @@ export default function RootLayout({
           <NavigationProgress />
           <div className="min-h-screen flex flex-col">
             <Navbar />
-            <main className="flex-1">{children}</main>
+            <main className="flex-1 pb-20 md:pb-0">{children}</main>
 
             {/* ── Footer ── */}
-            <footer style={{ background: "#0a1a0a" }} className="mt-16">
+            <footer style={{ background: "#0a1a0a" }} className="hidden md:block mt-16">
               <div className="max-w-6xl mx-auto px-4 pt-14 pb-8">
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-8 mb-12">
 

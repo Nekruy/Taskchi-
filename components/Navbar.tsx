@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useSession, signOut } from "next-auth/react";
 import { useState, useRef, useEffect, useCallback } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, usePathname } from "next/navigation";
 
 interface Notification {
   id: string;
@@ -27,6 +27,7 @@ export function Navbar() {
   const dropdownRef = useRef<HTMLDivElement>(null);
   const bellRef     = useRef<HTMLDivElement>(null);
   const router = useRouter();
+  const pathname = usePathname();
 
   // Fetch notifications
   const fetchNotifications = useCallback(async () => {
@@ -90,6 +91,7 @@ export function Navbar() {
   }
 
   return (
+    <>
     <header
       className="sticky top-0 z-50 bg-white"
       style={{ borderBottom: "1px solid #e8f5e8", boxShadow: "0 2px 16px rgba(20,168,0,.06)" }}
@@ -308,9 +310,8 @@ export function Navbar() {
           )}
         </div>
 
-        {/* ── Hamburger (mobile) ── */}
+        {/* ── Mobile: bell only ── */}
         <div className="md:hidden ml-auto flex items-center gap-2">
-          {/* Mobile bell */}
           {session && (
             <button
               onClick={() => router.push("/executor/notifications")}
@@ -327,71 +328,68 @@ export function Navbar() {
               )}
             </button>
           )}
-          <button
-            className="p-2.5 rounded-xl text-gray-600 hover:bg-green-50 transition-colors"
-            onClick={() => setMenuOpen(!menuOpen)}
-            aria-label="Меню"
-          >
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              {menuOpen
-                ? <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 18L18 6M6 6l12 12" />
-                : <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M4 6h16M4 12h16M4 18h16" />
-              }
-            </svg>
-          </button>
         </div>
       </div>
-
-      {/* ── Mobile menu ── */}
-      {menuOpen && (
-        <div
-          className="md:hidden bg-white px-4 pb-4 pt-3 space-y-2 animate-fade-in"
-          style={{ borderTop: "1px solid #e8f5e8", boxShadow: "0 8px 24px rgba(20,168,0,.08)" }}
-        >
-          {/* Mobile search */}
-          <form onSubmit={handleSearch} className="relative mb-3">
-            <svg className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400"
-                 fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
-                d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-            </svg>
-            <input
-              type="text"
-              value={searchQuery}
-              onChange={(e) => setSearch(e.target.value)}
-              placeholder="Найти поручение..."
-              className="w-full pl-10 pr-4 py-3 text-sm bg-white focus:outline-none transition-all"
-              style={{ border: "1.5px solid #e8f5e8", borderRadius: "20px" }}
-            />
-          </form>
-
-          <div className="grid grid-cols-2 gap-2 text-sm">
-            <Link href="/tasks" className="flex items-center gap-2 py-2.5 px-3 text-gray-700 font-medium hover:text-[#14A800] hover:bg-green-50 rounded-xl" onClick={() => setMenuOpen(false)}>📋 Задачи</Link>
-            <Link href="/map"   className="flex items-center gap-2 py-2.5 px-3 text-gray-700 font-medium hover:text-[#14A800] hover:bg-green-50 rounded-xl" onClick={() => setMenuOpen(false)}>🗺️ Карта</Link>
-          </div>
-
-          {session ? (
-            <div className="space-y-2" style={{ borderTop: "1px solid #e8f5e8", paddingTop: "12px" }}>
-              <Link href="/tasks/create" className="btn-primary w-full justify-center py-3" onClick={() => setMenuOpen(false)}>
-                + Создать поручение
-              </Link>
-              <div className="grid grid-cols-2 gap-2">
-                <Link href={session.user.role === "EXECUTOR" ? "/executor" : "/customer"} className="flex items-center gap-2 py-2.5 px-3 text-gray-700 font-medium hover:bg-green-50 rounded-xl text-sm" onClick={() => setMenuOpen(false)}>📊 Кабинет</Link>
-                <Link href={`/profile/${session.user.id}`} className="flex items-center gap-2 py-2.5 px-3 text-gray-700 font-medium hover:bg-green-50 rounded-xl text-sm" onClick={() => setMenuOpen(false)}>👤 Профиль</Link>
-              </div>
-              <button onClick={() => { signOut({ callbackUrl: "/" }); setMenuOpen(false); }}
-                className="w-full flex items-center gap-2 py-2.5 px-3 text-red-600 font-medium hover:bg-red-50 rounded-xl text-sm">
-                🚪 Выйти
-              </button>
-            </div>
-          ) : (
-            <div className="grid grid-cols-2 gap-2" style={{ borderTop: "1px solid #e8f5e8", paddingTop: "12px" }}>
-              <Link href="/login"    className="btn-outline  justify-center py-3" onClick={() => setMenuOpen(false)}>Войти</Link>
-              <Link href="/register" className="btn-primary  justify-center py-3" onClick={() => setMenuOpen(false)}>Регистрация</Link>
-            </div>
-          )}
-        </div>
-      )}
     </header>
+
+      {/* ── Bottom Navigation (mobile only) ── */}
+      <nav
+        className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-white"
+        style={{ borderTop: "1px solid #e8f5e8", boxShadow: "0 -2px 16px rgba(20,168,0,.08)" }}
+      >
+        <div className="flex items-end justify-around h-16 px-1 pb-1">
+
+          {/* Home */}
+          <Link
+            href="/"
+            className={`flex flex-col items-center gap-0.5 flex-1 py-2 transition-colors ${pathname === "/" ? "text-[#14A800]" : "text-gray-400"}`}
+          >
+            <span className="text-2xl leading-none">🏠</span>
+            <span className="text-[10px] font-medium">Главная</span>
+          </Link>
+
+          {/* Tasks */}
+          <Link
+            href="/tasks"
+            className={`flex flex-col items-center gap-0.5 flex-1 py-2 transition-colors ${pathname.startsWith("/tasks") && pathname !== "/tasks/create" ? "text-[#14A800]" : "text-gray-400"}`}
+          >
+            <span className="text-2xl leading-none">📋</span>
+            <span className="text-[10px] font-medium">Задачи</span>
+          </Link>
+
+          {/* Create — elevated center button */}
+          <Link href="/tasks/create" className="flex flex-col items-center flex-1 -mt-5">
+            <div
+              className="w-14 h-14 rounded-full flex items-center justify-center shadow-lg"
+              style={{ background: "linear-gradient(135deg, #14A800, #00d4aa)", boxShadow: "0 4px 16px rgba(20,168,0,.40)" }}
+            >
+              <svg className="w-7 h-7 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 4v16m8-8H4" />
+              </svg>
+            </div>
+            <span className="text-[10px] font-medium text-gray-400 mt-0.5">Создать</span>
+          </Link>
+
+          {/* Chats */}
+          <Link
+            href="/chat"
+            className={`flex flex-col items-center gap-0.5 flex-1 py-2 transition-colors ${pathname.startsWith("/chat") ? "text-[#14A800]" : "text-gray-400"}`}
+          >
+            <span className="text-2xl leading-none">💬</span>
+            <span className="text-[10px] font-medium">Чаты</span>
+          </Link>
+
+          {/* Profile */}
+          <Link
+            href="/dashboard"
+            className={`flex flex-col items-center gap-0.5 flex-1 py-2 transition-colors ${pathname === "/dashboard" || pathname.startsWith("/customer") || pathname.startsWith("/executor") ? "text-[#14A800]" : "text-gray-400"}`}
+          >
+            <span className="text-2xl leading-none">👤</span>
+            <span className="text-[10px] font-medium">Профиль</span>
+          </Link>
+
+        </div>
+      </nav>
+    </>
   );
 }

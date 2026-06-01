@@ -78,7 +78,7 @@ export function TaskCard({ task }: TaskCardProps) {
 
   return (
     /* task-card CSS class handles all hover via pure CSS — no event handlers needed */
-    <Link href={`/tasks/${task.id}`} className="task-card group animate-slide-up">
+    <Link href={`/tasks/${task.id}`} className="task-card group animate-slide-up active:scale-95 transition-transform">
 
       {/* ── Category badge + status ── */}
       <div className="flex items-center justify-between gap-2 mb-4">
@@ -101,12 +101,12 @@ export function TaskCard({ task }: TaskCardProps) {
       </div>
 
       {/* ── Title ── */}
-      <h3 className="font-bold text-gray-900 text-base leading-snug mb-2 line-clamp-2 group-hover:text-[#14A800] transition-colors">
+      <h3 className="font-bold text-gray-900 text-lg md:text-base leading-snug mb-2 line-clamp-2 group-hover:text-[#14A800] transition-colors">
         {task.title}
       </h3>
 
       {/* ── Description ── */}
-      <p className="text-gray-500 text-sm leading-relaxed line-clamp-2 mb-4">
+      <p className="text-gray-500 text-base md:text-sm leading-relaxed line-clamp-2 mb-4">
         {task.description}
       </p>
 
