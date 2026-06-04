@@ -7,7 +7,11 @@ const config: CapacitorConfig = {
   server: {
     androidScheme: 'https',
     url: 'https://taskchi-production.up.railway.app',
-    cleartext: false
+    cleartext: false,
+    allowNavigation: ['taskchi-production.up.railway.app', 'taskchi.tj']
+  },
+  android: {
+    allowMixedContent: true
   },
   plugins: {
     PushNotifications: {
