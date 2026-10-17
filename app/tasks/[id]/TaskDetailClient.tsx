@@ -4,20 +4,9 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Session } from "next-auth";
+import { CATEGORY_MAP } from "@/lib/categories";
 
-const CATEGORY_LABELS: Record<string, { label: string; emoji: string }> = {
-  CHILDREN: { label: "Дети", emoji: "👶" },
-  SHOPPING: { label: "Покупки", emoji: "🛒" },
-  DELIVERY: { label: "Доставка", emoji: "🚚" },
-  QUEUE: { label: "Очередь", emoji: "🕐" },
-  HOUSEHOLD: { label: "Дом", emoji: "🏠" },
-  ONLINE: { label: "Онлайн", emoji: "💻" },
-  CLEANING: { label: "Уборка", emoji: "🧹" },
-  DRIVER: { label: "Водитель", emoji: "🚘" },
-  MOVING: { label: "Переезды", emoji: "📦" },
-  COOKING: { label: "Готовка", emoji: "🍳" },
-  PHOTO: { label: "Фото/видео", emoji: "📷" },
-};
+const CATEGORY_LABELS: Record<string, { label: string; emoji: string }> = CATEGORY_MAP;
 
 const STATUS_MAP: Record<string, { label: string; cls: string; emoji: string }> = {
   OPEN:        { label: "Открыта",      cls: "badge-open",       emoji: "🟢" },

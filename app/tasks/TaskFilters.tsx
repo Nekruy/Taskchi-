@@ -2,15 +2,11 @@
 
 import { useRouter, useSearchParams } from "next/navigation";
 import { useState, useCallback } from "react";
+import { CATEGORIES as APP_CATEGORIES } from "@/lib/categories";
 
 const CATEGORIES = [
   { key: "", label: "Все задачи", emoji: "🔍" },
-  { key: "CHILDREN", label: "Дети", emoji: "🧒" },
-  { key: "SHOPPING", label: "Покупки", emoji: "🛒" },
-  { key: "DELIVERY", label: "Доставка", emoji: "🚗" },
-  { key: "QUEUE", label: "Очередь", emoji: "⏰" },
-  { key: "HOUSEHOLD", label: "Дом", emoji: "🏠" },
-  { key: "ONLINE", label: "IT задачи", emoji: "💻" },
+  ...APP_CATEGORIES.map(({ key, label, emoji }) => ({ key, label, emoji })),
 ];
 
 const SORT_OPTIONS = [

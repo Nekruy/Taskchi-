@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { z } from "zod";
+import { TaskCategory } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { authOptions } from "@/lib/auth";
 import { parseTaskFromText } from "@/lib/groq";
@@ -10,7 +11,7 @@ import { calculateCommission } from "@/lib/commission";
 const CreateTaskSchema = z.object({
   title: z.string().min(5).max(120),
   description: z.string().min(10),
-  category: z.enum(["CHILDREN", "SHOPPING", "DELIVERY", "QUEUE", "HOUSEHOLD", "ONLINE"]),
+  category: z.nativeEnum(TaskCategory),
   budget: z.number().positive().max(100000),
   address: z.string().optional(),
   city: z.string().optional(),

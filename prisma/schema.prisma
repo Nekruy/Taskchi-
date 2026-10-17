@@ -22,6 +22,7 @@ enum TaskCategory {
   MOVING     // Переезды / Кӯчидан
   COOKING    // Готовка / Пухтупаз
   PHOTO      // Фото и видео / Акс ва видео
+  DIGITAL    // Цифровые услуги / Хидматҳои рақамӣ
 }
 
 enum TaskStatus {
@@ -133,6 +134,10 @@ model User {
   verification         Verification?
   passwordResetTokens  PasswordResetToken[]
   notifications        Notification[]
+  enrollments          Enrollment[]       @relation("UserEnrollments")
+  enrollmentsCreated   Enrollment[]       @relation("EnrollmentsCreated")
+  submissionsReviewed  Submission[]       @relation("SubmissionsReviewed")
+  executorCategories   ExecutorCategory[]
 
   @@map("users")
 }
@@ -338,4 +343,144 @@ model Notification {
 
   @@index([userId])
   @@map("notifications")
+}
+
+// ─── Academy ──────────────────────────────────────────────────────────────────
+
+enum LessonType {
+  VIDEO
+  EXTERNAL
+  TEXT
+  TASK
+}
+
+enum EnrollmentStatus {
+  ACTIVE
+  COMPLETED
+  DROPPED
+}
+
+enum SubmissionStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+model Track {
+  id             String       @id @default(cuid())
+  slug           String       @unique
+  titleRu        String
+  titleTj        String
+  descriptionRu  String       @db.Text
+  descriptionTj  String       @db.Text
+  coverUrl       String?
+  taskCategory   TaskCategory
+  estimatedHours Int
+  order          Int          @default(0)
+  isPublished    Boolean      @default(false)
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+
+  lessons     Lesson[]
+  enrollments Enrollment[]
+
+  @@map("tracks")
+}
+
+model Lesson {
+  id          String     @id @default(cuid())
+  trackId     String
+  track       Track      @relation(fields: [trackId], references: [id], onDelete: Cascade)
+  order       Int
+  titleRu     String
+  titleTj     String
+  type        LessonType
+  externalUrl String?
+  contentMd   String?    @db.Text
+  provider    String?
+  durationMin Int?
+
+  progress LessonProgress[]
+
+  @@index([trackId])
+  @@map("lessons")
+}
+
+model Enrollment {
+  id           String           @id @default(cuid())
+  userId       String
+  user         User             @relation("UserEnrollments", fields: [userId], references: [id])
+  trackId      String
+  track        Track            @relation(fields: [trackId], references: [id])
+  centerId     String?
+  center       Center?          @relation(fields: [centerId], references: [id])
+  enrolledById String?
+  enrolledBy   User?            @relation("EnrollmentsCreated", fields: [enrolledById], references: [id])
+  status       EnrollmentStatus @default(ACTIVE)
+  startedAt    DateTime         @default(now())
+  completedAt  DateTime?
+
+  progress   LessonProgress[]
+  submission Submission?
+
+  @@unique([userId, trackId])
+  @@index([centerId])
+  @@index([status])
+  @@index([completedAt])
+  @@map("enrollments")
+}
+
+model LessonProgress {
+  id           String     @id @default(cuid())
+  enrollmentId String
+  enrollment   Enrollment @relation(fields: [enrollmentId], references: [id], onDelete: Cascade)
+  lessonId     String
+  lesson       Lesson     @relation(fields: [lessonId], references: [id])
+  completedAt  DateTime   @default(now())
+
+  @@unique([enrollmentId, lessonId])
+  @@map("lesson_progress")
+}
+
+model Submission {
+  id           String           @id @default(cuid())
+  enrollmentId String           @unique
+  enrollment   Enrollment       @relation(fields: [enrollmentId], references: [id])
+  fileUrls     String[]
+  comment      String?          @db.Text
+  status       SubmissionStatus @default(PENDING)
+  reviewerId   String?
+  reviewer     User?            @relation("SubmissionsReviewed", fields: [reviewerId], references: [id])
+  feedback     String?          @db.Text
+  reviewedAt   DateTime?
+  createdAt    DateTime         @default(now())
+
+  @@map("submissions")
+}
+
+model Center {
+  id           String  @id @default(cuid())
+  name         String
+  region       String
+  address      String?
+  contactName  String?
+  contactPhone String?
+  isActive     Boolean @default(true)
+
+  enrollments Enrollment[]
+
+  @@map("centers")
+}
+
+model ExecutorCategory {
+  id        String       @id @default(cuid())
+  userId    String
+  user      User         @relation(fields: [userId], references: [id])
+  category  TaskCategory
+  source    String // "ACADEMY" | "MANUAL"
+  trackId   String?
+  grantedAt DateTime     @default(now())
+
+  @@unique([userId, category])
+  @@map("executor_categories")
 }

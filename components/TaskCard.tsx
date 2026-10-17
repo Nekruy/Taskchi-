@@ -1,16 +1,10 @@
 "use client";
 
 import Link from "next/link";
+import { CATEGORY_MAP } from "@/lib/categories";
 
-/* ── Category config ─────────────────────────────────────────── */
-const CAT: Record<string, { label: string; emoji: string }> = {
-  CHILDREN: { label: "Дети",      emoji: "🧒" },
-  SHOPPING: { label: "Покупки",   emoji: "🛒" },
-  DELIVERY: { label: "Доставка",  emoji: "🚗" },
-  QUEUE:    { label: "Очередь",   emoji: "⏰" },
-  HOUSEHOLD:{ label: "Дом",       emoji: "🏠" },
-  ONLINE:   { label: "IT задача", emoji: "💻" },
-};
+/* ── Category config (единый источник — lib/categories.ts) ───── */
+const CAT: Record<string, { label: string; emoji: string }> = CATEGORY_MAP;
 
 const STATUS: Record<string, { label: string; cls: string }> = {
   OPEN:        { label: "Открыта",  cls: "badge-open"      },

@@ -3,14 +3,11 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 
-const CATEGORY_EMOJI: Record<string, string> = {
-  CHILDREN: "👶",
-  SHOPPING: "🛒",
-  DELIVERY: "🚚",
-  QUEUE: "🕐",
-  HOUSEHOLD: "🏠",
-  ONLINE: "💻",
-};
+import { ALL_CATEGORIES } from "@/lib/categories";
+
+const CATEGORY_EMOJI: Record<string, string> = Object.fromEntries(
+  Object.values(ALL_CATEGORIES).map((c) => [c.key, c.emoji])
+);
 
 interface MapTask {
   id: string;
