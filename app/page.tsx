@@ -8,20 +8,6 @@ export const dynamic = "force-dynamic";
 export const revalidate = 0;
 
 /* ── DB queries ──────────────────────────────────────────────── */
-async function getStats() {
-  noStore();
-  try {
-    const [totalTasks, totalUsers, doneTasks] = await Promise.all([
-      prisma.task.count(),
-      prisma.user.count(),
-      prisma.task.count({ where: { status: "DONE" } }),
-    ]);
-    return { totalTasks, totalUsers, doneTasks };
-  } catch {
-    return { totalTasks: 0, totalUsers: 0, doneTasks: 0 };
-  }
-}
-
 async function getRecentTasks() {
   noStore();
   try {
@@ -75,8 +61,8 @@ function Stars({ rating }: { rating: number }) {
 
 /* ── Page (Server Component — ZERO event handlers allowed) ───── */
 export default async function HomePage() {
-  const [stats, recentTasks, topExecutors] = await Promise.all([
-    getStats(), getRecentTasks(), getTopExecutors(),
+  const [recentTasks, topExecutors] = await Promise.all([
+    getRecentTasks(), getTopExecutors(),
   ]);
 
   return (
@@ -302,54 +288,6 @@ export default async function HomePage() {
                 <p className="font-bold text-sm text-gray-800 mb-0.5">{cat.label}</p>
                 <p className="text-xs text-gray-500 leading-tight">{cat.desc}</p>
               </Link>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* ════════════════════ DARK STATS BANNER ════════════════════════ */}
-      <section style={{ background: "#061a0a" }} className="py-16 px-4 relative overflow-hidden">
-        {/* Subtle green glow blobs */}
-        <div className="absolute -top-16 left-1/4 w-72 h-72 rounded-full pointer-events-none"
-             style={{ background: "radial-gradient(circle, rgba(20,168,0,.18) 0%, transparent 70%)", filter: "blur(40px)" }} />
-        <div className="absolute -bottom-16 right-1/4 w-64 h-64 rounded-full pointer-events-none"
-             style={{ background: "radial-gradient(circle, rgba(0,212,170,.14) 0%, transparent 70%)", filter: "blur(40px)" }} />
-
-        <div className="relative max-w-4xl mx-auto">
-          <div className="text-center mb-10">
-            <h2 className="text-3xl font-extrabold text-white tracking-tight">
-              Цифры говорят сами за себя
-            </h2>
-            <p className="text-sm mt-2" style={{ color: "rgba(255,255,255,.50)" }}>
-              Растём каждый день вместе с нашими пользователями
-            </p>
-          </div>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
-            {[
-              { value: stats.totalTasks,  label: "Задач создано",       suffix: "+"  },
-              { value: stats.totalUsers,  label: "Пользователей",        suffix: "+"  },
-              { value: stats.doneTasks,   label: "Успешно выполнено",    suffix: ""   },
-              { value: 98,               label: "% довольных клиентов",  suffix: "%"  },
-            ].map((s, i) => (
-              <div
-                key={i}
-                className="text-center animate-fade-up"
-                style={{ animationDelay: `${i * 120}ms` }}
-              >
-                <div
-                  className="text-4xl md:text-5xl font-extrabold mb-1"
-                  style={{
-                    background: "linear-gradient(135deg, #14A800, #00d4aa)",
-                    WebkitBackgroundClip: "text",
-                    backgroundClip: "text",
-                    WebkitTextFillColor: "transparent",
-                    color: "transparent",
-                  }}
-                >
-                  {s.value.toLocaleString("ru-RU")}{s.suffix}
-                </div>
-                <p className="text-sm font-medium" style={{ color: "rgba(255,255,255,.60)" }}>{s.label}</p>
-              </div>
             ))}
           </div>
         </div>
