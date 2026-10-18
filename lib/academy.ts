@@ -87,3 +87,85 @@ export async function getEnrollment(userId: string, trackId: string) {
     completedLessonIds: enrollment.progress.map((p) => p.lessonId),
   };
 }
+
+/* ─── Этап 2: сдача задания, допуск, бейджи ─────────────────────────────────── */
+
+export type AcademyBadge = { category: string; trackTitleRu: string | null };
+
+/**
+ * Допуски, выданные Академией (ExecutorCategory.source = "ACADEMY").
+ * У ExecutorCategory.trackId нет FK (решение отчёта 01), поэтому название трека
+ * подтягивается вторым запросом.
+ */
+export async function getAcademyBadges(userId: string): Promise<AcademyBadge[]> {
+  const rows = await prisma.executorCategory.findMany({
+    where: { userId, source: "ACADEMY" },
+    select: { category: true, trackId: true },
+    orderBy: { grantedAt: "asc" },
+  });
+  if (rows.length === 0) return [];
+  const trackIds = rows.map((r) => r.trackId).filter((id): id is string => !!id);
+  const tracks = trackIds.length
+    ? await prisma.track.findMany({ where: { id: { in: trackIds } }, select: { id: true, titleRu: true } })
+    : [];
+  return rows.map((r) => ({
+    category: r.category,
+    trackTitleRu: tracks.find((t) => t.id === r.trackId)?.titleRu ?? null,
+  }));
+}
+
+/** Уроки, которые нужно пройти до сдачи задания — все, кроме TASK. */
+export function requiredLessonIds(lessons: Array<{ id: string; type: string }>): string[] {
+  return lessons.filter((l) => l.type !== "TASK").map((l) => l.id);
+}
+
+/** Сколько обязательных уроков ещё не пройдено. */
+export function countMissingLessons(
+  lessons: Array<{ id: string; type: string }>,
+  completedLessonIds: string[]
+): number {
+  const done = new Set(completedLessonIds);
+  return requiredLessonIds(lessons).filter((id) => !done.has(id)).length;
+}
+
+/** Поля Submission, которые видит ученик (без reviewerId). */
+export const SUBMISSION_STUDENT_SELECT = {
+  id: true,
+  status: true,
+  workUrl: true,
+  comment: true,
+  feedback: true,
+  reviewedAt: true,
+  createdAt: true,
+} as const;
+
+export type StudentSubmission = {
+  id: string;
+  status: "PENDING" | "APPROVED" | "REJECTED";
+  workUrl: string | null;
+  comment: string | null;
+  feedback: string | null;
+  reviewedAt: string | null;
+  createdAt: string;
+};
+
+/** Сериализация дат для передачи в клиентский компонент. */
+export function toStudentSubmission(s: {
+  id: string;
+  status: string;
+  workUrl: string | null;
+  comment: string | null;
+  feedback: string | null;
+  reviewedAt: Date | null;
+  createdAt: Date;
+}): StudentSubmission {
+  return {
+    id: s.id,
+    status: s.status as StudentSubmission["status"],
+    workUrl: s.workUrl,
+    comment: s.comment,
+    feedback: s.feedback,
+    reviewedAt: s.reviewedAt ? s.reviewedAt.toISOString() : null,
+    createdAt: s.createdAt.toISOString(),
+  };
+}
