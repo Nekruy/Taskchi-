@@ -14,7 +14,10 @@ function getGroq(): Groq {
   return groqClient;
 }
 
-const MODEL = process.env.GROQ_MODEL || "llama-3.3-70b-versatile";
+// llama-3.3-70b-versatile снят с Groq (404 model_not_found, октябрь 2026) — fallback на актуальную модель.
+// Переопределяется переменной GROQ_MODEL.
+export const GROQ_MODEL = process.env.GROQ_MODEL || "openai/gpt-oss-120b";
+const MODEL = GROQ_MODEL;
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 

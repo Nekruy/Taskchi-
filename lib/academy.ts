@@ -3,6 +3,9 @@
 import { prisma } from "@/lib/prisma";
 export { extractYoutubeId } from "@/lib/youtube";
 
+/** Имя ИИ-наставника Академии (Этап 4). Представляется как ИИ-помощник, не как человек. */
+export const MENTOR_NAME = "Устод";
+
 /** Поля урока, которые отдаём в списках (без externalUrl/contentMd). */
 export const LESSON_LIST_SELECT = {
   id: true,
