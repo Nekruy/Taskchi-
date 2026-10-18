@@ -107,7 +107,7 @@ model User {
   // ── New executor profile fields ────────────────────────────────
   lastName          String?
   gender            String?
-  birthDate         DateTime?
+  birthDate         DateTime? @db.Timestamptz(6)
   education         String?
   educationField    String?
   extraSkills       String[]  @default([])
@@ -251,6 +251,7 @@ model Message {
   senderId  String
   sender    User     @relation(fields: [senderId], references: [id])
   content   String
+  imageUrl  String?
   isRead    Boolean  @default(false)
   createdAt DateTime @default(now())
 
