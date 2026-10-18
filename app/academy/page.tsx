@@ -66,8 +66,7 @@ export default async function AcademyPage() {
               <div key={s.title} className="card text-left sm:text-center animate-slide-up" style={{ animationDelay: `${i * 80}ms` }}>
                 <div className="text-3xl mb-2">{s.icon}</div>
                 <div className="font-bold text-gray-900">
-                  <span className="text-[#14A800] mr-1.5">{i + 1}.</span>
-                  {s.title}
+                  <span className="text-[#14A800]">{i + 1}.</span> {s.title}
                 </div>
                 <p className="text-sm text-gray-500 mt-1 leading-snug">{s.text}</p>
               </div>

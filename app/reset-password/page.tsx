@@ -43,7 +43,10 @@ function ResetPasswordContent() {
     <div className="min-h-screen bg-gray-50 flex items-center justify-center px-4">
       <div className="w-full max-w-md">
         <div className="text-center mb-8">
-          <Link href="/"><span className="text-3xl">🎯</span></Link>
+          <Link href="/" className="inline-flex justify-center">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src="/logo.svg" alt="Taskchi" className="w-auto" style={{ height: 44 }} />
+          </Link>
           <h1 className="text-2xl font-bold mt-2">Новый пароль</h1>
         </div>
         <div className="bg-white rounded-2xl shadow-sm border p-7">

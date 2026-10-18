@@ -16,6 +16,7 @@ export const viewport: Viewport = {
 const inter = Inter({ subsets: ["latin", "cyrillic"] });
 
 export const metadata: Metadata = {
+  metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL ?? "https://taskchi.tj"),
   title: {
     default: "Taskchi — Любая задача за минуты в Таджикистане",
     template: "%s | Taskchi",

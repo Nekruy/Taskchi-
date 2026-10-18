@@ -2,7 +2,6 @@ import Link from "next/link";
 import { unstable_noStore as noStore } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { TaskCard } from "@/components/TaskCard";
-import { StatsCounter } from "@/components/StatsCounter";
 import { CATEGORIES, PROFESSIONS } from "@/lib/categories";
 
 export const dynamic = "force-dynamic";
@@ -276,13 +275,6 @@ export default async function HomePage() {
               </div>
             </div>
           </div>
-        </div>
-      </section>
-
-      {/* ══════════════════════════ STATS ══════════════════════════════ */}
-      <section style={{ background: "linear-gradient(135deg, rgba(20,168,0,.04) 0%, rgba(0,212,170,.04) 100%)", borderBottom: "1px solid #e8f5e8" }}>
-        <div className="max-w-4xl mx-auto px-4 py-8">
-          <StatsCounter stats={stats} />
         </div>
       </section>
 

@@ -72,9 +72,9 @@ export default function LoginPage() {
       <div className="w-full max-w-md">
         {/* Logo + title */}
         <div className="text-center mb-8">
-          <Link href="/" className="inline-flex items-center gap-2 mb-4">
-            <span className="text-3xl">🎯</span>
-            <span className="font-extrabold text-2xl text-gradient">Taskchi</span>
+          <Link href="/" className="inline-flex justify-center mb-4">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src="/logo.svg" alt="Taskchi" className="w-auto" style={{ height: 44 }} />
           </Link>
           <h1 className="text-2xl font-bold text-gray-900">Добро пожаловать</h1>
           <p className="text-gray-500 mt-1.5 text-sm">Войдите в свой аккаунт Taskchi</p>
@@ -200,13 +200,6 @@ export default function LoginPage() {
               ) : "Войти"}
             </button>
           </form>
-
-          {/* Demo hint */}
-          <div className="mt-4 p-3 bg-blue-50 border border-blue-100 rounded-xl">
-            <p className="text-xs text-blue-600 font-medium mb-1">Demo аккаунты:</p>
-            <p className="text-xs text-blue-500 font-mono">alice@taskchi.tj / password123</p>
-            <p className="text-xs text-blue-500 font-mono">bob@taskchi.tj / password123</p>
-          </div>
 
           <div className="mt-5 pt-5 border-t border-gray-100 text-center text-sm text-gray-500">
             Нет аккаунта?{" "}

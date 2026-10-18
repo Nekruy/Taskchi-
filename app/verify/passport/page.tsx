@@ -76,9 +76,9 @@ export default function PassportVerifyPage() {
     <div className="min-h-[calc(100vh-4rem)] bg-gray-50 flex items-center justify-center px-4 py-12">
       <div className="w-full max-w-md">
         <div className="text-center mb-8">
-          <Link href="/" className="inline-flex items-center gap-2 mb-4">
-            <span className="text-3xl">🎯</span>
-            <span className="font-extrabold text-2xl text-gradient">Taskchi</span>
+          <Link href="/" className="inline-flex justify-center mb-4">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src="/logo.svg" alt="Taskchi" className="w-auto" style={{ height: 44 }} />
           </Link>
           <h1 className="text-2xl font-bold text-gray-900">Верификация паспорта</h1>
           <p className="text-gray-500 mt-1.5 text-sm">Загрузите фото паспорта для верификации</p>

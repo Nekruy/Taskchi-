@@ -135,9 +135,9 @@ export default function VerifyEmailPage() {
     <div className="min-h-[calc(100vh-4rem)] bg-gray-50 flex items-center justify-center px-4 py-12">
       <div className="w-full max-w-md">
         <div className="text-center mb-8">
-          <Link href="/" className="inline-flex items-center gap-2 mb-4">
-            <span className="text-3xl">🎯</span>
-            <span className="font-extrabold text-2xl text-gradient">Taskchi</span>
+          <Link href="/" className="inline-flex justify-center mb-4">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src="/logo.svg" alt="Taskchi" className="w-auto" style={{ height: 44 }} />
           </Link>
           <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
             <svg className="w-8 h-8 text-[#14A800]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
