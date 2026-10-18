@@ -448,6 +448,7 @@ model Submission {
   enrollmentId String           @unique
   enrollment   Enrollment       @relation(fields: [enrollmentId], references: [id])
   fileUrls     String[]
+  workUrl      String?
   comment      String?          @db.Text
   status       SubmissionStatus @default(PENDING)
   reviewerId   String?
