@@ -138,6 +138,7 @@ model User {
   enrollmentsCreated   Enrollment[]       @relation("EnrollmentsCreated")
   submissionsReviewed  Submission[]       @relation("SubmissionsReviewed")
   executorCategories   ExecutorCategory[]
+  mentorMessages       MentorMessage[]
 
   @@map("users")
 }
@@ -420,7 +421,8 @@ model Lesson {
   provider    String?
   durationMin Int?
 
-  progress LessonProgress[]
+  progress       LessonProgress[]
+  mentorMessages MentorMessage[]
 
   @@index([trackId])
   @@map("lessons")
@@ -504,4 +506,20 @@ model ExecutorCategory {
 
   @@unique([userId, category])
   @@map("executor_categories")
+}
+
+/// Диалог ученика с ИИ-наставником на странице урока (Этап 4). role: "user" | "assistant".
+model MentorMessage {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  lessonId  String
+  lesson    Lesson   @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+  role      String
+  content   String   @db.Text
+  createdAt DateTime @default(now())
+
+  @@index([userId, lessonId, createdAt])
+  @@index([userId, createdAt])
+  @@map("mentor_messages")
 }
