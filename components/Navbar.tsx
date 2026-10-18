@@ -158,7 +158,7 @@ export function Navbar() {
           <Link href="/map" className="btn-ghost text-sm hidden lg:inline-flex">
             Карта
           </Link>
-          <Link href="/academy" className="btn-ghost text-sm hidden lg:inline-flex">
+          <Link href={session && enrolledCount > 0 ? "/learn" : "/academy"} className="btn-ghost text-sm hidden lg:inline-flex">
             Академия
           </Link>
 

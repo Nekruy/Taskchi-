@@ -7,6 +7,7 @@ import { CATEGORY_MAP } from "@/lib/categories";
 import { formatMinutes, getAcademyBadges, pluralLessons } from "@/lib/academy";
 import { AcademyBadge } from "@/components/AcademyBadge";
 import { PartnerLine } from "@/components/PartnerLine";
+import { LearnTabs } from "@/components/learn/LearnTabs";
 
 export const dynamic = "force-dynamic";
 
@@ -43,9 +44,16 @@ export default async function AcademyPage() {
     userId ? getAcademyBadges(userId) : Promise.resolve([]),
   ]);
   const isGraduate = badges.length > 0;
+  const enrolledCount = tracks.filter((t) => t.enrollments.length > 0).length;
+  const coursesWord = enrolledCount === 1 ? "курс" : enrolledCount < 5 ? "курса" : "курсов";
 
   return (
     <div>
+      {enrolledCount > 0 && (
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 pt-4">
+          <LearnTabs variant="catalog" />
+        </div>
+      )}
       {/* ── Hero ── */}
       <section className="bg-gradient-hero border-b border-border-green">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 py-12 md:py-16 text-center">
@@ -54,6 +62,12 @@ export default async function AcademyPage() {
           <p className="section-subtitle max-w-2xl mx-auto">
             Бесплатно научись цифровым навыкам — и получай задачи на Taskchi
           </p>
+          {enrolledCount > 0 && (
+            <div className="mt-6 flex flex-wrap items-center justify-center gap-3">
+              <Link href="/learn" className="btn-primary">🎒 Моя учёба →</Link>
+              <span className="text-sm text-gray-600">Вы проходите {enrolledCount} {coursesWord}</span>
+            </div>
+          )}
           {isGraduate && (
             <p className="mt-5 inline-flex flex-wrap items-center justify-center gap-2 text-sm font-semibold text-gray-800">
               <AcademyBadge badges={badges} />

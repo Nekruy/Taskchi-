@@ -10,7 +10,7 @@ export default async function LearnLayout({ children }: { children: React.ReactN
   const workHref = session?.user?.role === "EXECUTOR" ? "/executor" : "/customer";
   return (
     <div className="max-w-6xl mx-auto px-4 sm:px-6 py-6 md:py-8">
-      {session?.user?.id && <LearnTabs workHref={workHref} />}
+      {session?.user?.id && <LearnTabs variant="learn" workHref={workHref} className="mb-6" />}
       {children}
     </div>
   );

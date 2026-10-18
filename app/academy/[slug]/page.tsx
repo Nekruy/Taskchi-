@@ -15,6 +15,7 @@ import {
 } from "@/lib/academy";
 import { TrackActionsClient } from "./TrackActionsClient";
 import { PartnerLine } from "@/components/PartnerLine";
+import { LearnTabs } from "@/components/learn/LearnTabs";
 
 export const dynamic = "force-dynamic";
 
@@ -42,7 +43,10 @@ export default async function TrackPage({ params }: { params: { slug: string } }
   if (!track || !track.isPublished) notFound();
 
   const userId = session?.user?.id ?? null;
-  const enrollment = userId ? await getEnrollment(userId, track.id) : null;
+  const [enrollment, enrolledCount] = await Promise.all([
+    userId ? getEnrollment(userId, track.id) : Promise.resolve(null),
+    userId ? prisma.enrollment.count({ where: { userId } }) : Promise.resolve(0),
+  ]);
   const completed = new Set(enrollment?.completedLessonIds ?? []);
 
   const cat = CATEGORY_MAP[track.taskCategory] ?? { emoji: "📋", label: track.taskCategory };
@@ -54,6 +58,7 @@ export default async function TrackPage({ params }: { params: { slug: string } }
 
   return (
     <div className="max-w-4xl mx-auto px-4 sm:px-6 py-8 md:py-12">
+      {enrolledCount > 0 && <LearnTabs variant="catalog" className="mb-4" />}
       <Link href="/academy" className="btn-ghost -ml-3 mb-4 text-gray-500">
         ← Все курсы
       </Link>
