@@ -15,10 +15,14 @@ export default function LoginPage() {
   const [unverifiedEmail, setUnverifiedEmail] = useState("");
   const [resendLoading, setResendLoading] = useState(false);
   const [resendMessage, setResendMessage] = useState("");
+  const [callbackUrl, setCallbackUrl] = useState("/dashboard");
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     if (params.get("verified") === "1") setVerifiedSuccess(true);
+    // Возврат после логина — только на внутренний путь (защита от open redirect)
+    const cb = params.get("callbackUrl");
+    if (cb && cb.startsWith("/") && !cb.startsWith("//")) setCallbackUrl(cb);
   }, []);
 
   async function handleSubmit(e: React.FormEvent) {
@@ -40,7 +44,7 @@ export default function LoginPage() {
       setError("Неверный email или пароль");
       setLoading(false);
     } else {
-      router.push("/dashboard");
+      router.push(callbackUrl);
       router.refresh();
     }
   }
