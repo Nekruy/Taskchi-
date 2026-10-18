@@ -17,6 +17,8 @@ import {
 import { Markdown } from "@/components/Markdown";
 import { LessonNavClient } from "./LessonNavClient";
 import { SubmissionClient } from "./SubmissionClient";
+import { MentorChat } from "@/components/academy/MentorChat";
+import { MENTOR_NAME } from "@/lib/academy";
 
 export const dynamic = "force-dynamic";
 
@@ -247,6 +249,9 @@ export default async function LessonPage({ params }: Params) {
           </ol>
         </aside>
       </div>
+
+      {/* ИИ-наставник — только для записанных (страница выше уже требует сессию и запись) */}
+      <MentorChat lessonId={lesson.id} mentorName={MENTOR_NAME} />
     </div>
   );
 }
