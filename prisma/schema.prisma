@@ -379,13 +379,32 @@ model Track {
   estimatedHours Int
   order          Int          @default(0)
   isPublished    Boolean      @default(false)
+  partnerId      String?
+  partner        Partner?     @relation(fields: [partnerId], references: [id], onDelete: SetNull)
   createdAt      DateTime     @default(now())
   updatedAt      DateTime     @updatedAt
 
   lessons     Lesson[]
   enrollments Enrollment[]
 
+  @@index([partnerId])
   @@map("tracks")
+}
+
+/// Партнёр Академии (Alif Academy, IT Park, Ilmhona …) — автор курса. Трек без партнёра = курс Taskchi.
+model Partner {
+  id            String   @id @default(cuid())
+  slug          String   @unique
+  name          String
+  logoUrl       String?
+  websiteUrl    String?
+  descriptionRu String   @db.Text
+  isActive      Boolean  @default(true)
+  createdAt     DateTime @default(now())
+
+  tracks Track[]
+
+  @@map("partners")
 }
 
 model Lesson {
