@@ -76,6 +76,7 @@ export default async function TrackPage({ params }: { params: { slug: string } }
           slug={track.slug}
           isLoggedIn={!!userId}
           isEnrolled={!!enrollment}
+          isCompleted={enrollment?.status === "COMPLETED"}
           firstLessonId={firstLessonId}
           nextLessonId={nextLessonId}
           done={done}

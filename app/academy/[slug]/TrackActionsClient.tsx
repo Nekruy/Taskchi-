@@ -8,13 +8,14 @@ interface Props {
   slug: string;
   isLoggedIn: boolean;
   isEnrolled: boolean;
+  isCompleted?: boolean;
   firstLessonId: string | null;
   nextLessonId: string | null;
   done: number;
   total: number;
 }
 
-export function TrackActionsClient({ slug, isLoggedIn, isEnrolled, firstLessonId, nextLessonId, done, total }: Props) {
+export function TrackActionsClient({ slug, isLoggedIn, isEnrolled, isCompleted = false, firstLessonId, nextLessonId, done, total }: Props) {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -44,7 +45,13 @@ export function TrackActionsClient({ slug, isLoggedIn, isEnrolled, firstLessonId
 
   return (
     <div className="mt-6">
-      {isEnrolled && total > 0 && (
+      {isEnrolled && isCompleted && (
+        <div className="mb-4 flex flex-wrap items-center gap-2">
+          <span className="badge-open text-sm px-3 py-1.5">Курс пройден ✓</span>
+          <span className="text-sm text-gray-500">Задание принято, категория открыта</span>
+        </div>
+      )}
+      {isEnrolled && !isCompleted && total > 0 && (
         <div className="mb-4">
           <div className="flex items-center justify-between text-sm mb-1.5">
             <span className="font-semibold text-gray-700">Прогресс</span>
@@ -67,13 +74,19 @@ export function TrackActionsClient({ slug, isLoggedIn, isEnrolled, firstLessonId
           <button type="button" onClick={enroll} disabled={loading || !firstLessonId} className="btn-primary">
             {loading ? "Записываем..." : "Записаться бесплатно"}
           </button>
+        ) : isCompleted && firstLessonId ? (
+          <Link href={`/academy/${slug}/${firstLessonId}`} className="btn-outline">
+            Повторить курс
+          </Link>
         ) : nextLessonId ? (
           <Link href={`/academy/${slug}/${nextLessonId}`} className="btn-primary">
             {done === 0 ? "Начать обучение" : done >= total ? "Повторить курс" : "Продолжить"} →
           </Link>
         ) : null}
 
-        {done >= total && total > 0 && isEnrolled && <span className="badge-open">Все уроки пройдены 🎉</span>}
+        {!isCompleted && done >= total && total > 0 && isEnrolled && (
+          <span className="badge-open">Все уроки пройдены 🎉</span>
+        )}
       </div>
 
       {error && <p className="text-sm text-red-600 mt-3">{error}</p>}

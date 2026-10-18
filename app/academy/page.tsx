@@ -4,7 +4,8 @@ import { getServerSession } from "next-auth";
 import { prisma } from "@/lib/prisma";
 import { authOptions } from "@/lib/auth";
 import { CATEGORY_MAP } from "@/lib/categories";
-import { formatMinutes, pluralLessons } from "@/lib/academy";
+import { formatMinutes, getAcademyBadges, pluralLessons } from "@/lib/academy";
+import { AcademyBadge } from "@/components/AcademyBadge";
 
 export const dynamic = "force-dynamic";
 
@@ -24,7 +25,8 @@ export default async function AcademyPage() {
   const session = await getServerSession(authOptions);
   const userId = session?.user?.id ?? null;
 
-  const tracks = await prisma.track.findMany({
+  const [tracks, badges] = await Promise.all([
+    prisma.track.findMany({
     where: { isPublished: true },
     orderBy: { order: "asc" },
     include: {
@@ -35,7 +37,10 @@ export default async function AcademyPage() {
         select: { status: true, _count: { select: { progress: true } } },
       },
     },
-  });
+    }),
+    userId ? getAcademyBadges(userId) : Promise.resolve([]),
+  ]);
+  const isGraduate = badges.length > 0;
 
   return (
     <div>
@@ -47,6 +52,12 @@ export default async function AcademyPage() {
           <p className="section-subtitle max-w-2xl mx-auto">
             Бесплатно научись цифровым навыкам — и получай задачи на Taskchi
           </p>
+          {isGraduate && (
+            <p className="mt-5 inline-flex flex-wrap items-center justify-center gap-2 text-sm font-semibold text-gray-800">
+              <AcademyBadge badges={badges} />
+              Вы — выпускник Taskchi Academy
+            </p>
+          )}
 
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mt-10 max-w-3xl mx-auto">
             {STEPS.map((s, i) => (
@@ -86,6 +97,7 @@ export default async function AcademyPage() {
               const totalMinutes = t.lessons.reduce((s, l) => s + (l.durationMin ?? 0), 0);
               const enrollment = t.enrollments[0];
               const done = enrollment?._count.progress ?? 0;
+              const isDone = enrollment?.status === "COMPLETED";
               const duration = totalMinutes > 0 ? `~${formatMinutes(totalMinutes)}` : `~${t.estimatedHours} ч`;
 
               return (
@@ -95,7 +107,7 @@ export default async function AcademyPage() {
                       <span className="text-sm leading-none">{cat.emoji}</span>
                       {cat.label}
                     </span>
-                    {enrollment && <span className="badge-progress">В процессе</span>}
+                    {enrollment && (isDone ? <span className="badge-open">Пройден ✓</span> : <span className="badge-progress">В процессе</span>)}
                   </div>
 
                   <h3 className="font-bold text-gray-900 text-lg leading-snug mb-2 group-hover:text-[#14A800] transition-colors">
@@ -108,7 +120,7 @@ export default async function AcademyPage() {
                       {pluralLessons(lessonsCount)} · {duration}
                     </p>
 
-                    {enrollment && lessonsCount > 0 && (
+                    {enrollment && !isDone && lessonsCount > 0 && (
                       <div className="h-1.5 rounded-full bg-gray-100 mb-3 overflow-hidden">
                         <div
                           className="h-full rounded-full bg-gradient-brand transition-all"
@@ -117,8 +129,8 @@ export default async function AcademyPage() {
                       </div>
                     )}
 
-                    <span className="btn-primary w-full">
-                      {enrollment ? `Продолжить · ${done}/${lessonsCount}` : "Начать"}
+                    <span className={`${isDone ? "btn-outline" : "btn-primary"} w-full`}>
+                      {isDone ? "Пройден ✓" : enrollment ? `Продолжить · ${done}/${lessonsCount}` : "Начать"}
                     </span>
                   </div>
                 </Link>

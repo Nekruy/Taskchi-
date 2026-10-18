@@ -8,11 +8,15 @@ import {
   LESSON_LIST_SELECT,
   LESSON_TYPE_ICON,
   LESSON_TYPE_LABEL,
+  SUBMISSION_STUDENT_SELECT,
+  countMissingLessons,
   extractYoutubeId,
   getEnrollment,
+  toStudentSubmission,
 } from "@/lib/academy";
 import { Markdown } from "@/components/Markdown";
 import { LessonNavClient } from "./LessonNavClient";
+import { SubmissionClient } from "./SubmissionClient";
 
 export const dynamic = "force-dynamic";
 
@@ -30,7 +34,13 @@ export async function generateMetadata({ params }: Params): Promise<Metadata> {
 }
 
 /* ── Контент по типу урока ─────────────────────────────────────── */
-function LessonBody({ lesson }: { lesson: { type: string; externalUrl: string | null; contentMd: string | null; titleRu: string } }) {
+function LessonBody({
+  lesson,
+  submissionPanel,
+}: {
+  lesson: { type: string; externalUrl: string | null; contentMd: string | null; titleRu: string };
+  submissionPanel?: React.ReactNode;
+}) {
   if (lesson.type === "EXTERNAL") {
     const url = lesson.externalUrl ?? "";
     const ytId = extractYoutubeId(url);
@@ -90,13 +100,7 @@ function LessonBody({ lesson }: { lesson: { type: string; externalUrl: string | 
             <Markdown content={lesson.contentMd} />
           </div>
         )}
-        <div className="card border-dashed text-center py-8">
-          <div className="text-3xl mb-2">📤</div>
-          <p className="font-bold text-gray-900">Сдача задания откроется скоро</p>
-          <p className="text-sm text-gray-500 mt-1">
-            Пока подготовьте работу по описанию выше — загрузка появится в следующем обновлении
-          </p>
-        </div>
+        {submissionPanel}
       </div>
     );
   }
@@ -124,6 +128,7 @@ export default async function LessonPage({ params }: Params) {
           id: true,
           slug: true,
           titleRu: true,
+          taskCategory: true,
           isPublished: true,
           lessons: { select: LESSON_LIST_SELECT, orderBy: { order: "asc" } },
         },
@@ -142,6 +147,23 @@ export default async function LessonPage({ params }: Params) {
   const nextId = idx < lessons.length - 1 ? lessons[idx + 1].id : null;
   const done = lessons.filter((l) => completed.has(l.id)).length;
   const percent = lessons.length > 0 ? Math.round((done / lessons.length) * 100) : 0;
+
+  // Этап 2: для урока TASK — состояние сдачи задания
+  let submissionPanel: React.ReactNode = null;
+  if (lesson.type === "TASK") {
+    const submission = await prisma.submission.findUnique({
+      where: { enrollmentId: enrollment.id },
+      select: SUBMISSION_STUDENT_SELECT,
+    });
+    submissionPanel = (
+      <SubmissionClient
+        slug={lesson.track.slug}
+        category={lesson.track.taskCategory}
+        initialSubmission={submission ? toStudentSubmission(submission) : null}
+        missingLessons={countMissingLessons(lessons, enrollment.completedLessonIds)}
+      />
+    );
+  }
 
   return (
     <div className="max-w-6xl mx-auto px-4 sm:px-6 py-6 md:py-10">
@@ -164,7 +186,7 @@ export default async function LessonPage({ params }: Params) {
             {lesson.titleRu}
           </h1>
 
-          <LessonBody lesson={lesson} />
+          <LessonBody lesson={lesson} submissionPanel={submissionPanel} />
 
           <LessonNavClient
             slug={lesson.track.slug}
