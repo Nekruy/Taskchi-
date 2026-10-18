@@ -122,7 +122,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ reply: result.reply, remainingToday, dailyLimit: MENTOR_DAILY_LIMIT });
   } catch (err) {
     if (err instanceof z.ZodError) return NextResponse.json({ error: err.errors[0].message }, { status: 400 });
-    if (err instanceof MentorUnavailableError) return NextResponse.json({ error: err.message }, { status: 503 });
+    if (err instanceof MentorUnavailableError) return NextResponse.json({ error: err.message, code: err.code }, { status: 503 });
     console.error("[Academy mentor POST]", err);
     return NextResponse.json({ error: "Ошибка сервера" }, { status: 500 });
   }

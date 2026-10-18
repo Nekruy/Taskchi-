@@ -13,16 +13,21 @@ export const MENTOR_MESSAGE_MAX = 1500;
 const GROQ_TIMEOUT_MS = 20_000;
 const MODEL = GROQ_MODEL; // единый fallback с lib/groq.ts (AI-парсер задач)
 
+/** code — краткая причина для диагностики в ответе 503 (без деталей ключа/модели в тексте). */
+export type MentorErrorCode = "no_api_key" | "invalid_api_key" | "model_not_found" | "rate_limited" | "timeout" | "upstream_error" | "empty_reply";
+
 export class MentorUnavailableError extends Error {
-  constructor(message = "Наставник сейчас недоступен, попробуйте через минуту") {
+  code: MentorErrorCode;
+  constructor(code: MentorErrorCode = "upstream_error", message = "Наставник сейчас недоступен, попробуйте через минуту") {
     super(message);
     this.name = "MentorUnavailableError";
+    this.code = code;
   }
 }
 
 let client: Groq | null = null;
 function getClient(): Groq {
-  if (!process.env.GROQ_API_KEY) throw new MentorUnavailableError();
+  if (!process.env.GROQ_API_KEY) throw new MentorUnavailableError("no_api_key");
   if (!client) client = new Groq({ apiKey: process.env.GROQ_API_KEY, timeout: GROQ_TIMEOUT_MS, maxRetries: 1 });
   return client;
 }
@@ -102,13 +107,19 @@ export async function askMentor(ctx: PromptContext, history: MentorTurn[], messa
   } catch (err) {
     const e = err as { status?: number; name?: string; message?: string };
     console.error("[Academy mentor] Groq error", { status: e.status, name: e.name, message: e.message?.slice(0, 300), model: MODEL });
-    throw new MentorUnavailableError();
+    const code: MentorErrorCode =
+      e.status === 401 ? "invalid_api_key"
+      : e.status === 404 ? "model_not_found"
+      : e.status === 429 ? "rate_limited"
+      : /timeout|timed out|abort/i.test(`${e.name} ${e.message}`) ? "timeout"
+      : "upstream_error";
+    throw new MentorUnavailableError(code);
   }
 
   const reply = completion.choices?.[0]?.message?.content?.trim();
   if (!reply) {
     console.error("[Academy mentor] empty completion", { model: MODEL, finish: completion.choices?.[0]?.finish_reason });
-    throw new MentorUnavailableError();
+    throw new MentorUnavailableError("empty_reply");
   }
   const u = completion.usage;
   return {
