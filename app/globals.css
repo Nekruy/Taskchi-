@@ -516,3 +516,12 @@ body {
     /* active touch feedback handled by Tailwind active:scale-95 */
   }
 }
+
+/* ══ Печать сертификата (/learn/certificate): без шапки, навигации и футера ══ */
+@media print {
+  @page { size: A4 landscape; margin: 12mm; }
+  header, nav, footer, .no-print { display: none !important; }
+  body { background: #fff !important; }
+  main { padding: 0 !important; }
+  .certificate { box-shadow: none !important; page-break-inside: avoid; }
+}
