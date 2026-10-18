@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import { AcademyTabs } from "./AcademyTabs";
 
 type Status = "PENDING" | "APPROVED" | "REJECTED";
 
@@ -105,7 +106,8 @@ export default function AdminAcademyPage() {
 
   return (
     <div className="p-6 max-w-5xl">
-      <h1 className="text-2xl font-bold text-gray-900 mb-1">Академия — проверка заданий</h1>
+      <h1 className="text-2xl font-bold text-gray-900 mb-4">Академия — проверка заданий</h1>
+      <AcademyTabs />
       <p className="text-sm text-gray-500 mb-6">
         Принятая работа открывает ученику категорию трека и бейдж «Taskchi Academy».
       </p>
