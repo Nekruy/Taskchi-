@@ -11,7 +11,10 @@ export async function GET(_req: NextRequest, { params }: { params: { slug: strin
   try {
     const track = await prisma.track.findUnique({
       where: { slug: params.slug },
-      include: { lessons: { select: LESSON_LIST_SELECT, orderBy: { order: "asc" } } },
+      include: {
+        partner: { select: { name: true, logoUrl: true, websiteUrl: true } },
+        lessons: { select: LESSON_LIST_SELECT, orderBy: { order: "asc" } },
+      },
     });
     if (!track || !track.isPublished) {
       return NextResponse.json({ error: "Трек не найден" }, { status: 404 });

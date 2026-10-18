@@ -105,7 +105,17 @@ function LessonBody({
     );
   }
 
-  // VIDEO — собственный плеер появится позже
+  // VIDEO — прямая ссылка на mp4 / HLS, HTML5-плеер
+  if (lesson.type === "VIDEO" && lesson.externalUrl) {
+    return (
+      <div className="aspect-video rounded-2xl overflow-hidden bg-black">
+        <video controls playsInline preload="metadata" src={lesson.externalUrl} className="w-full h-full">
+          Ваш браузер не поддерживает видео.{" "}
+          <a href={lesson.externalUrl} className="underline">Скачать файл</a>
+        </video>
+      </div>
+    );
+  }
   return (
     <div className="aspect-video rounded-2xl bg-gray-900 text-white flex flex-col items-center justify-center gap-2">
       <span className="text-4xl">🎬</span>

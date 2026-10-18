@@ -6,6 +6,7 @@ import { authOptions } from "@/lib/auth";
 import { CATEGORY_MAP } from "@/lib/categories";
 import { formatMinutes, getAcademyBadges, pluralLessons } from "@/lib/academy";
 import { AcademyBadge } from "@/components/AcademyBadge";
+import { PartnerLine } from "@/components/PartnerLine";
 
 export const dynamic = "force-dynamic";
 
@@ -30,6 +31,7 @@ export default async function AcademyPage() {
     where: { isPublished: true },
     orderBy: { order: "asc" },
     include: {
+      partner: { select: { name: true, logoUrl: true, websiteUrl: true } },
       lessons: { select: { durationMin: true } },
       // Без сессии userId = null → where по несуществующему id даёт пустой массив
       enrollments: {
@@ -101,7 +103,13 @@ export default async function AcademyPage() {
               const duration = totalMinutes > 0 ? `~${formatMinutes(totalMinutes)}` : `~${t.estimatedHours} ч`;
 
               return (
-                <Link key={t.id} href={`/academy/${t.slug}`} className="card-lift flex flex-col group">
+                <Link key={t.id} href={`/academy/${t.slug}`} className="card-lift flex flex-col group overflow-hidden">
+                  {t.coverUrl && (
+                    <div className="-mx-5 -mt-5 mb-4 aspect-video bg-primary-50 overflow-hidden">
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img src={t.coverUrl} alt="" className="w-full h-full object-cover" loading="lazy" />
+                    </div>
+                  )}
                   <div className="flex items-center justify-between gap-2 mb-4">
                     <span className="badge-category">
                       <span className="text-sm leading-none">{cat.emoji}</span>
@@ -113,7 +121,12 @@ export default async function AcademyPage() {
                   <h3 className="font-bold text-gray-900 text-lg leading-snug mb-2 group-hover:text-[#14A800] transition-colors">
                     {t.titleRu}
                   </h3>
-                  <p className="text-gray-500 text-sm leading-relaxed line-clamp-2 mb-4">{t.descriptionRu}</p>
+                  <p className="text-gray-500 text-sm leading-relaxed line-clamp-2 mb-3">{t.descriptionRu}</p>
+                  {t.partner && (
+                    <div className="mb-3">
+                      <PartnerLine partner={t.partner} />
+                    </div>
+                  )}
 
                   <div className="mt-auto">
                     <p className="text-xs text-gray-400 font-medium mb-3">
@@ -138,6 +151,25 @@ export default async function AcademyPage() {
             })}
           </div>
         )}
+      </section>
+
+      {/* ── Для компаний и школ ── */}
+      <section className="max-w-6xl mx-auto px-4 sm:px-6 pb-14">
+        <div className="card md:p-8 flex flex-col md:flex-row md:items-center gap-5 border-[#14A800]/20 bg-gradient-brand-light">
+          <div className="text-4xl shrink-0">🤝</div>
+          <div className="flex-1">
+            <h2 className="text-xl font-extrabold text-gray-900">Для компаний и школ</h2>
+            <p className="text-gray-600 mt-1 leading-relaxed">
+              Разместите свой бесплатный курс на Taskchi Academy — ученики проходят его у нас и получают задачи.
+            </p>
+          </div>
+          <a
+            href="mailto:info@taskchi.tj?subject=Курс на Taskchi Academy"
+            className="btn-primary shrink-0"
+          >
+            Написать нам
+          </a>
+        </div>
       </section>
     </div>
   );

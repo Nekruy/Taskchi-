@@ -15,6 +15,7 @@ export async function GET() {
       where: { isPublished: true },
       orderBy: { order: "asc" },
       include: {
+        partner: { select: { name: true, logoUrl: true, websiteUrl: true } },
         lessons: { select: { durationMin: true } },
         // Без сессии userId = null → where по несуществующему id даёт пустой массив
         enrollments: {

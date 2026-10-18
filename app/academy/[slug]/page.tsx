@@ -14,13 +14,17 @@ import {
   pluralLessons,
 } from "@/lib/academy";
 import { TrackActionsClient } from "./TrackActionsClient";
+import { PartnerLine } from "@/components/PartnerLine";
 
 export const dynamic = "force-dynamic";
 
 async function loadTrack(slug: string) {
   return prisma.track.findUnique({
     where: { slug },
-    include: { lessons: { select: LESSON_LIST_SELECT, orderBy: { order: "asc" } } },
+    include: {
+      partner: { select: { name: true, logoUrl: true, websiteUrl: true } },
+      lessons: { select: LESSON_LIST_SELECT, orderBy: { order: "asc" } },
+    },
   });
 }
 
@@ -65,6 +69,11 @@ export default async function TrackPage({ params }: { params: { slug: string } }
         </div>
 
         <h1 className="section-title text-3xl md:text-4xl">{track.titleRu}</h1>
+        {track.partner && (
+          <div className="mt-3">
+            <PartnerLine partner={track.partner} className="text-sm" />
+          </div>
+        )}
         <p className="text-gray-600 leading-relaxed mt-4">{track.descriptionRu}</p>
 
         <div className="flex flex-wrap gap-4 text-sm text-gray-500 mt-5">
