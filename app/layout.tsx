@@ -107,6 +107,7 @@ export default function RootLayout({
                       <li><Link href="/tasks"        className="footer-link">Все задачи</Link></li>
                       <li><Link href="/tasks/create" className="footer-link">Создать задачу</Link></li>
                       <li><Link href="/map"          className="footer-link">Карта задач</Link></li>
+                      <li><Link href="/academy"      className="footer-link">Академия</Link></li>
                     </ul>
                   </div>
 

@@ -151,6 +151,9 @@ export function Navbar() {
           <Link href="/map" className="btn-ghost text-sm hidden lg:inline-flex">
             Карта
           </Link>
+          <Link href="/academy" className="btn-ghost text-sm hidden lg:inline-flex">
+            Академия
+          </Link>
 
           {session ? (
             <>
@@ -274,6 +277,7 @@ export function Navbar() {
                       { href: session.user.role === "EXECUTOR" ? "/executor" : "/customer", icon: "📊", label: "Личный кабинет" },
                       { href: `/profile/${session.user.id}`,                                icon: "👤", label: "Мой профиль"    },
                       { href: "/tasks/create",                                              icon: "✍️", label: "Создать поручение" },
+                      { href: "/academy",                                                   icon: "🎓", label: "Академия"        },
                     ].map((item) => (
                       <Link key={item.href} href={item.href}
                         className="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:text-[#14A800] transition-colors"
@@ -339,13 +343,13 @@ export function Navbar() {
       >
         <div className="flex items-end justify-around h-16 px-1 pb-1">
 
-          {/* Home */}
+          {/* Academy (логотип в шапке остаётся ссылкой на главную) */}
           <Link
-            href="/"
-            className={`flex flex-col items-center gap-0.5 flex-1 py-2 transition-colors ${pathname === "/" ? "text-[#14A800]" : "text-gray-400"}`}
+            href="/academy"
+            className={`flex flex-col items-center gap-0.5 flex-1 py-2 transition-colors ${pathname.startsWith("/academy") ? "text-[#14A800]" : "text-gray-400"}`}
           >
-            <span className="text-2xl leading-none">🏠</span>
-            <span className="text-[10px] font-medium">Главная</span>
+            <span className="text-2xl leading-none">🎓</span>
+            <span className="text-[10px] font-medium">Академия</span>
           </Link>
 
           {/* Tasks */}
