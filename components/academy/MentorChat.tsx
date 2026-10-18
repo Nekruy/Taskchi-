@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Markdown } from "@/components/Markdown";
+import { SavePromptButton } from "@/components/learn/SavePromptButton";
 
 interface Msg {
   id: string;
@@ -11,6 +12,7 @@ interface Msg {
 
 interface Props {
   lessonId: string;
+  lessonTitle?: string;
   mentorName: string;
 }
 
@@ -20,7 +22,7 @@ const QUICK = [
   { label: "Проверь мой промпт", text: "Вот мой промпт: ", send: false },
 ];
 
-export function MentorChat({ lessonId, mentorName }: Props) {
+export function MentorChat({ lessonId, lessonTitle = "", mentorName }: Props) {
   const [open, setOpen] = useState(false);
   const [messages, setMessages] = useState<Msg[]>([]);
   const [remaining, setRemaining] = useState<number | null>(null);
@@ -187,7 +189,8 @@ export function MentorChat({ lessonId, mentorName }: Props) {
                     {m.content}
                   </div>
                 ) : m.role === "user" ? (
-                  <div key={m.id} className="flex justify-end">
+                  <div key={m.id} className="flex justify-end items-end gap-1.5">
+                    <SavePromptButton lessonId={lessonId} lessonTitle={lessonTitle} source="MENTOR" initialBody={m.content} variant="icon" className="text-gray-400 hover:text-[#14A800] mb-1" />
                     <div className="max-w-[85%] bg-gradient-brand text-white text-sm rounded-2xl rounded-br-md px-3.5 py-2.5 whitespace-pre-wrap break-words">
                       {m.content}
                     </div>

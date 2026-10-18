@@ -24,6 +24,7 @@ export function Navbar() {
   const [bellOpen, setBellOpen]     = useState(false);
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [unreadCount, setUnreadCount]     = useState(0);
+  const [enrolledCount, setEnrolledCount] = useState(0);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const bellRef     = useRef<HTMLDivElement>(null);
   const router = useRouter();
@@ -42,6 +43,12 @@ export function Navbar() {
     } catch {
       // silently fail
     }
+  }, [session]);
+
+  // Куда вести «Академия» в bottom nav: записанным — в кабинет /learn
+  useEffect(() => {
+    if (!session) { setEnrolledCount(0); return; }
+    fetch("/api/learn/status").then(async (r) => { if (r.ok) { const d = await r.json(); setEnrolledCount(d.enrolledCount ?? 0); } }).catch(() => {});
   }, [session]);
 
   useEffect(() => {
@@ -278,6 +285,7 @@ export function Navbar() {
                       { href: `/profile/${session.user.id}`,                                icon: "👤", label: "Мой профиль"    },
                       { href: "/tasks/create",                                              icon: "✍️", label: "Создать поручение" },
                       { href: "/academy",                                                   icon: "🎓", label: "Академия"        },
+                      { href: "/learn",                                                     icon: "🎒", label: "Моя учёба"       },
                     ].map((item) => (
                       <Link key={item.href} href={item.href}
                         className="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:text-[#14A800] transition-colors"
@@ -345,8 +353,8 @@ export function Navbar() {
 
           {/* Academy (логотип в шапке остаётся ссылкой на главную) */}
           <Link
-            href="/academy"
-            className={`flex flex-col items-center gap-0.5 flex-1 py-2 transition-colors ${pathname.startsWith("/academy") ? "text-[#14A800]" : "text-gray-400"}`}
+            href={session && enrolledCount > 0 ? "/learn" : "/academy"}
+            className={`flex flex-col items-center gap-0.5 flex-1 py-2 transition-colors ${pathname.startsWith("/academy") || pathname.startsWith("/learn") ? "text-[#14A800]" : "text-gray-400"}`}
           >
             <span className="text-2xl leading-none">🎓</span>
             <span className="text-[10px] font-medium">Академия</span>

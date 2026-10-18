@@ -24,7 +24,7 @@ const NAV = [
   { href: "/customer",    icon: "📋", label: "Мои задачи" },
   { href: "/tasks/create",icon: "➕", label: "Создать" },
   { href: "/chat",        icon: "💬", label: "Чаты" },
-  { href: "/academy",     icon: "🎓", label: "Академия" },
+  { href: "/learn",       icon: "🎒", label: "Учёба" },
   { href: "/profile",     icon: "👤", label: "Профиль" },
 ];
 

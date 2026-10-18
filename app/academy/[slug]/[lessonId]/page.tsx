@@ -18,6 +18,8 @@ import { Markdown } from "@/components/Markdown";
 import { LessonNavClient } from "./LessonNavClient";
 import { SubmissionClient } from "./SubmissionClient";
 import { MentorChat } from "@/components/academy/MentorChat";
+import { SavePromptButton } from "@/components/learn/SavePromptButton";
+import { LessonNotes } from "@/components/learn/LessonNotes";
 import { MENTOR_NAME } from "@/lib/academy";
 
 export const dynamic = "force-dynamic";
@@ -160,6 +162,12 @@ export default async function LessonPage({ params }: Params) {
   const done = lessons.filter((l) => completed.has(l.id)).length;
   const percent = lessons.length > 0 ? Math.round((done / lessons.length) * 100) : 0;
 
+  // Этап 5: заметка ученика к уроку
+  const note = await prisma.lessonNote.findUnique({
+    where: { userId_lessonId: { userId: session.user.id, lessonId: lesson.id } },
+    select: { content: true },
+  });
+
   // Этап 2: для урока TASK — состояние сдачи задания
   let submissionPanel: React.ReactNode = null;
   if (lesson.type === "TASK") {
@@ -199,6 +207,11 @@ export default async function LessonPage({ params }: Params) {
           </h1>
 
           <LessonBody lesson={lesson} submissionPanel={submissionPanel} />
+
+          <div className="mt-4 flex flex-wrap gap-2">
+            <SavePromptButton lessonId={lesson.id} lessonTitle={lesson.titleRu} source="PRACTICE" />
+          </div>
+          <LessonNotes lessonId={lesson.id} initialContent={note?.content ?? ""} />
 
           <LessonNavClient
             slug={lesson.track.slug}
@@ -251,7 +264,7 @@ export default async function LessonPage({ params }: Params) {
       </div>
 
       {/* ИИ-наставник — только для записанных (страница выше уже требует сессию и запись) */}
-      <MentorChat lessonId={lesson.id} mentorName={MENTOR_NAME} />
+      <MentorChat lessonId={lesson.id} lessonTitle={lesson.titleRu} mentorName={MENTOR_NAME} />
     </div>
   );
 }
