@@ -1,5 +1,7 @@
 "use client";
 
+import { AcademyBadge } from "@/components/AcademyBadge";
+
 import { useState } from "react";
 import { Session } from "next-auth";
 import Link from "next/link";
@@ -67,6 +69,7 @@ interface UserProfile {
 interface ProfileClientProps {
   user: UserProfile;
   session: Session | null;
+  academyBadges?: Array<{ category: string; trackTitleRu: string | null }>;
 }
 
 // ─── Sub-components ───────────────────────────────────────────────────────────
@@ -112,7 +115,7 @@ function calcAge(birthDate: Date | string | null | undefined): number | null {
 
 // ─── Main component ───────────────────────────────────────────────────────────
 
-export function ProfileClient({ user, session }: ProfileClientProps) {
+export function ProfileClient({ user, session, academyBadges = [] }: ProfileClientProps) {
   const isOwn      = session?.user?.id === user.id;
   const viewerRole = (session?.user as { role?: string } | null)?.role;
   const isCustomer = viewerRole === "CUSTOMER";
@@ -174,11 +177,14 @@ export function ProfileClient({ user, session }: ProfileClientProps) {
                   </span>
                 )}
               </div>
-              {isVerifiedByPassport && (
-                <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-green-100 text-green-700 rounded-full text-xs font-semibold shrink-0">
-                  ✓ Верифицирован
-                </span>
-              )}
+              <div className="flex flex-wrap items-center gap-1.5 shrink-0">
+                {isVerifiedByPassport && (
+                  <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-green-100 text-green-700 rounded-full text-xs font-semibold shrink-0">
+                    ✓ Верифицирован
+                  </span>
+                )}
+                <AcademyBadge badges={academyBadges} />
+              </div>
             </div>
 
             {/* Meta: city, workArea, age, gender, memberSince */}
@@ -196,6 +202,16 @@ export function ProfileClient({ user, session }: ProfileClientProps) {
                 })}
               </span>
             </div>
+
+            {/* Подтверждено Академией */}
+            {academyBadges.length > 0 && (
+              <p className="text-sm text-gray-700 mt-3">
+                🎓 Подтверждено Taskchi Academy:{" "}
+                <span className="font-semibold">
+                  {academyBadges.map((b) => CATEGORY_MAP[b.category]?.label ?? b.category).join(", ")}
+                </span>
+              </p>
+            )}
 
             {/* Skills tags */}
             {user.skills.length > 0 && (
