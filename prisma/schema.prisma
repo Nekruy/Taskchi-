@@ -139,6 +139,9 @@ model User {
   submissionsReviewed  Submission[]       @relation("SubmissionsReviewed")
   executorCategories   ExecutorCategory[]
   mentorMessages       MentorMessage[]
+  lessonNotes          LessonNote[]
+  savedPrompts         SavedPrompt[]
+  learningPlan         LearningPlan?
 
   @@map("users")
 }
@@ -423,6 +426,8 @@ model Lesson {
 
   progress       LessonProgress[]
   mentorMessages MentorMessage[]
+  notes          LessonNote[]
+  savedPrompts   SavedPrompt[]
 
   @@index([trackId])
   @@map("lessons")
@@ -522,4 +527,49 @@ model MentorMessage {
   @@index([userId, lessonId, createdAt])
   @@index([userId, createdAt])
   @@map("mentor_messages")
+}
+
+// ─── Academy, Этап 5: учебный кабинет /learn ──────────────────────────────────
+
+/// Заметка ученика к уроку (markdown), одна на пару пользователь × урок.
+model LessonNote {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  lessonId  String
+  lesson    Lesson   @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+  content   String   @db.Text
+  updatedAt DateTime @updatedAt
+
+  @@unique([userId, lessonId])
+  @@map("lesson_notes")
+}
+
+/// Сохранённый промпт ученика. source: "PRACTICE" (со страницы урока) | "MENTOR" (из чата) | "MANUAL".
+model SavedPrompt {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  title     String
+  body      String   @db.Text
+  tags      String[] @default([])
+  source    String
+  lessonId  String?
+  lesson    Lesson?  @relation(fields: [lessonId], references: [id], onDelete: SetNull)
+  createdAt DateTime @default(now())
+
+  @@index([userId, createdAt])
+  @@map("saved_prompts")
+}
+
+/// План занятий: сколько дней в неделю и какие (0 = воскресенье … 6 = суббота).
+model LearningPlan {
+  id            String   @id @default(cuid())
+  userId        String   @unique
+  user          User     @relation(fields: [userId], references: [id])
+  daysPerWeek   Int
+  preferredDays Int[]    @default([])
+  updatedAt     DateTime @updatedAt
+
+  @@map("learning_plans")
 }
