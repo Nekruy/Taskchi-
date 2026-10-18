@@ -7,6 +7,7 @@ const TABS = [
   { href: "/admin/academy", label: "Проверка заданий", exact: true },
   { href: "/admin/academy/tracks", label: "Курсы", exact: false },
   { href: "/admin/academy/partners", label: "Партнёры", exact: false },
+  { href: "/admin/academy/mentor", label: "Наставник", exact: false },
 ];
 
 export function AcademyTabs() {
