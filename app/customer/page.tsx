@@ -4,13 +4,11 @@ import { useEffect, useState } from "react";
 import { useSession } from "next-auth/react";
 import { useRouter, usePathname } from "next/navigation";
 import Link from "next/link";
+import { ALL_CATEGORIES } from "@/lib/categories";
 
-const CATEGORY_ICONS: Record<string, string> = {
-  CHILDREN: "🧒", SHOPPING: "🛒", DELIVERY: "🚗",
-  QUEUE: "⏰", HOUSEHOLD: "🏠", ONLINE: "💻",
-  CLEANING: "🧹", DRIVER: "🚘", MOVING: "📦",
-  COOKING: "🍳", PHOTO: "📷",
-};
+const CATEGORY_ICONS: Record<string, string> = Object.fromEntries(
+  Object.values(ALL_CATEGORIES).map((c) => [c.key, c.emoji])
+);
 const STATUS_LABELS: Record<string, string> = {
   OPEN: "Открыта", IN_PROGRESS: "В работе", REVIEW: "На проверке",
   DONE: "Выполнено", CANCELLED: "Отменена",
@@ -26,6 +24,7 @@ const NAV = [
   { href: "/customer",    icon: "📋", label: "Мои задачи" },
   { href: "/tasks/create",icon: "➕", label: "Создать" },
   { href: "/chat",        icon: "💬", label: "Чаты" },
+  { href: "/academy",     icon: "🎓", label: "Академия" },
   { href: "/profile",     icon: "👤", label: "Профиль" },
 ];
 

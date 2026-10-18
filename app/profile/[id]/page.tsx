@@ -3,6 +3,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { ProfileClient } from "./ProfileClient";
+import { getAcademyBadges } from "@/lib/academy";
 
 export const dynamic = "force-dynamic";
 
@@ -92,5 +93,7 @@ export default async function ProfilePage({ params }: { params: { id: string } }
 
   if (!user) notFound();
 
-  return <ProfileClient user={user as never} session={session} />;
+  const academyBadges = await getAcademyBadges(user.id);
+
+  return <ProfileClient user={user as never} session={session} academyBadges={academyBadges} />;
 }

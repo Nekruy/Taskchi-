@@ -36,7 +36,10 @@ async function TaskDetailServer({ params }: { params: { id: string } }) {
         offers: {
           include: {
             executor: {
-              select: { id: true, name: true, avatar: true, rating: true, reviewCount: true },
+              select: {
+                id: true, name: true, avatar: true, rating: true, reviewCount: true,
+                executorCategories: { where: { source: "ACADEMY" }, select: { category: true, trackId: true } },
+              },
             },
           },
           orderBy: { createdAt: "desc" },
@@ -52,7 +55,25 @@ async function TaskDetailServer({ params }: { params: { id: string } }) {
 
   if (!task) notFound();
 
-  return <TaskDetailClient task={task as never} session={session} />;
+  // Этап 2 Academy: названия треков для бейджей выпускников среди откликнувшихся
+  const trackIds = Array.from(
+    new Set(task.offers.flatMap((o) => o.executor.executorCategories.map((c) => c.trackId)).filter((id): id is string => !!id))
+  );
+  const trackTitles = trackIds.length
+    ? await prisma.track.findMany({ where: { id: { in: trackIds } }, select: { id: true, titleRu: true } })
+    : [];
+  const offersWithBadges = task.offers.map((o) => ({
+    ...o,
+    executor: {
+      ...o.executor,
+      academyBadges: o.executor.executorCategories.map((c) => ({
+        category: c.category,
+        trackTitleRu: trackTitles.find((t) => t.id === c.trackId)?.titleRu ?? null,
+      })),
+    },
+  }));
+
+  return <TaskDetailClient task={{ ...task, offers: offersWithBadges } as never} session={session} />;
 }
 
 export default function TaskDetailPage({ params }: { params: { id: string } }) {

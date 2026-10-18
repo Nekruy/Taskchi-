@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useCallback, useEffect, useState } from "react";
 
 interface AdminSidebarProps {
   userName: string;
@@ -15,10 +16,29 @@ const navLinks = [
   { href: "/admin/disputes", icon: "⚖️", label: "Споры" },
   { href: "/admin/finances", icon: "💰", label: "Финансы" },
   { href: "/admin/verification", icon: "🛡️", label: "Верификация" },
+  { href: "/admin/academy", icon: "🎓", label: "Академия" },
 ];
 
 export function AdminSidebar({ userName, userEmail }: AdminSidebarProps) {
   const pathname = usePathname();
+  const [pendingSubmissions, setPendingSubmissions] = useState(0);
+
+  const loadCount = useCallback(async () => {
+    try {
+      const res = await fetch("/api/admin/academy/submissions/count");
+      if (!res.ok) return;
+      const data = await res.json();
+      setPendingSubmissions(data.pending ?? 0);
+    } catch {
+      // счётчик не критичен — молча пропускаем
+    }
+  }, []);
+
+  useEffect(() => {
+    loadCount();
+    window.addEventListener("academy:submissions-changed", loadCount);
+    return () => window.removeEventListener("academy:submissions-changed", loadCount);
+  }, [loadCount, pathname]);
 
   const isActive = (href: string) => {
     if (href === "/admin") {
@@ -52,6 +72,11 @@ export function AdminSidebar({ userName, userEmail }: AdminSidebarProps) {
           >
             <span className="text-base">{link.icon}</span>
             {link.label}
+            {link.href === "/admin/academy" && pendingSubmissions > 0 && (
+              <span className="ml-auto min-w-[20px] h-5 px-1.5 rounded-full bg-red-500 text-white text-[11px] font-bold flex items-center justify-center">
+                {pendingSubmissions > 99 ? "99+" : pendingSubmissions}
+              </span>
+            )}
           </Link>
         ))}
       </nav>

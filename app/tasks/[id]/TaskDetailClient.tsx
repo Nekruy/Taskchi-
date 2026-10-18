@@ -4,20 +4,10 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Session } from "next-auth";
+import { CATEGORY_MAP } from "@/lib/categories";
+import { AcademyBadge } from "@/components/AcademyBadge";
 
-const CATEGORY_LABELS: Record<string, { label: string; emoji: string }> = {
-  CHILDREN: { label: "Дети", emoji: "👶" },
-  SHOPPING: { label: "Покупки", emoji: "🛒" },
-  DELIVERY: { label: "Доставка", emoji: "🚚" },
-  QUEUE: { label: "Очередь", emoji: "🕐" },
-  HOUSEHOLD: { label: "Дом", emoji: "🏠" },
-  ONLINE: { label: "Онлайн", emoji: "💻" },
-  CLEANING: { label: "Уборка", emoji: "🧹" },
-  DRIVER: { label: "Водитель", emoji: "🚘" },
-  MOVING: { label: "Переезды", emoji: "📦" },
-  COOKING: { label: "Готовка", emoji: "🍳" },
-  PHOTO: { label: "Фото/видео", emoji: "📷" },
-};
+const CATEGORY_LABELS: Record<string, { label: string; emoji: string }> = CATEGORY_MAP;
 
 const STATUS_MAP: Record<string, { label: string; cls: string; emoji: string }> = {
   OPEN:        { label: "Открыта",      cls: "badge-open",       emoji: "🟢" },
@@ -50,7 +40,10 @@ interface TaskDetailClientProps {
     executor?: { id: string; name: string; avatar?: string | null; rating: number; reviewCount: number } | null;
     offers: Array<{
       id: string; price: number; message: string; status: string;
-      executor: { id: string; name: string; avatar?: string | null; rating: number; reviewCount: number };
+      executor: {
+        id: string; name: string; avatar?: string | null; rating: number; reviewCount: number;
+        academyBadges?: Array<{ category: string; trackTitleRu: string | null }>;
+      };
     }>;
     contract?: { id: string; status: string; pdfUrl?: string | null } | null;
     escrow?: { id: string; status: string; amount: number; commission: number } | null;
@@ -435,6 +428,11 @@ export function TaskDetailClient({ task, session }: TaskDetailClientProps) {
                             </Link>
                             {offer.executor.rating > 0 && (
                               <div className="text-xs text-amber-500">★ {offer.executor.rating.toFixed(1)} ({offer.executor.reviewCount} отзывов)</div>
+                            )}
+                            {offer.executor.academyBadges && offer.executor.academyBadges.length > 0 && (
+                              <div className="mt-1">
+                                <AcademyBadge badges={offer.executor.academyBadges} />
+                              </div>
                             )}
                           </div>
                         </div>

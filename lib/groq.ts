@@ -1,4 +1,6 @@
 import Groq from "groq-sdk";
+import { TaskCategory } from "@prisma/client";
+import { ALL_CATEGORIES } from "@/lib/categories";
 
 let groqClient: Groq | null = null;
 
@@ -19,7 +21,7 @@ const MODEL = process.env.GROQ_MODEL || "llama-3.3-70b-versatile";
 export interface ParsedTask {
   title: string;
   description: string;
-  category: "CHILDREN" | "SHOPPING" | "DELIVERY" | "QUEUE" | "HOUSEHOLD" | "ONLINE";
+  category: TaskCategory;
   budget: number;
   city: string;
   address?: string;
@@ -36,17 +38,18 @@ export interface ExecutorMatch {
 
 // ─── Parse task from free text ────────────────────────────────────────────────
 
+// Список категорий строится из enum Prisma — единый источник истины
+const CATEGORY_VALUES = Object.values(TaskCategory);
+const CATEGORY_PROMPT_LINES = CATEGORY_VALUES.map(
+  (k) => `- ${k}: ${ALL_CATEGORIES[k].label} — ${ALL_CATEGORIES[k].desc}`
+).join("\n");
+
 export async function parseTaskFromText(rawText: string): Promise<ParsedTask> {
   const prompt = `Ты — ИИ-помощник маркетплейса задач Taskchi для Таджикистана.
 Пользователь описал задачу в свободной форме. Извлеки структурированные данные.
 
 Категории задач:
-- CHILDREN: дети, няня, репетитор, уход за детьми
-- SHOPPING: покупки, магазин, товары, харид
-- DELIVERY: доставка, курьер, привезти, расонидан
-- QUEUE: очередь, стоять, навбат
-- HOUSEHOLD: уборка, ремонт, домашние дела
-- ONLINE: интернет, онлайн, компьютер, дизайн, перевод
+${CATEGORY_PROMPT_LINES}
 
 Текст задачи: "${rawText}"
 
@@ -54,7 +57,7 @@ export async function parseTaskFromText(rawText: string): Promise<ParsedTask> {
 {
   "title": "краткое название задачи (до 60 символов)",
   "description": "подробное описание",
-  "category": "CHILDREN|SHOPPING|DELIVERY|QUEUE|HOUSEHOLD|ONLINE",
+  "category": "${CATEGORY_VALUES.join("|")}",
   "budget": число в сомони (если не указано — предложи разумную сумму),
   "city": "город (по умолчанию Душанбе)",
   "address": "адрес если указан или null",

@@ -1,17 +1,13 @@
 import { prisma } from "@/lib/prisma";
 import { Metadata } from "next";
+import { ALL_CATEGORIES } from "@/lib/categories";
 
 export const dynamic = "force-dynamic";
 export const metadata: Metadata = { title: "Аналитика" };
 
-const categoryLabels: Record<string, string> = {
-  CHILDREN: "👶 Дети",
-  SHOPPING: "🛒 Покупки",
-  DELIVERY: "🚚 Доставка",
-  QUEUE: "⏳ Очередь",
-  HOUSEHOLD: "🏠 Домашние дела",
-  ONLINE: "💻 Онлайн",
-};
+const categoryLabels: Record<string, string> = Object.fromEntries(
+  Object.values(ALL_CATEGORIES).map((c) => [c.key, `${c.emoji} ${c.label}`])
+);
 
 export default async function AdminAnalyticsPage() {
   const now = new Date();

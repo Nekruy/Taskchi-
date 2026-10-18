@@ -16,6 +16,7 @@ const NAV = [
   { href: "/executor",               icon: "📋", label: "Задачи" },
   { href: "/executor/earnings",      icon: "💰", label: "Заработок" },
   { href: "/executor/notifications", icon: "🔔", label: "Уведомления" },
+  { href: "/academy",                icon: "🎓", label: "Академия" },
   { href: "/profile",                icon: "👤", label: "Профиль" },
 ];
 

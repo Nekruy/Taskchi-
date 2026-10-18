@@ -1,6 +1,8 @@
 import { prisma } from "@/lib/prisma";
 import Link from "next/link";
 import { Metadata } from "next";
+import { TaskCategory } from "@prisma/client";
+import { ALL_CATEGORIES } from "@/lib/categories";
 import { TaskActions } from "./TaskActions";
 
 export const dynamic = "force-dynamic";
@@ -10,14 +12,9 @@ interface PageProps {
   searchParams: { status?: string; category?: string };
 }
 
-const categoryLabels: Record<string, string> = {
-  CHILDREN: "👶 Дети",
-  SHOPPING: "🛒 Покупки",
-  DELIVERY: "🚚 Доставка",
-  QUEUE: "⏳ Очередь",
-  HOUSEHOLD: "🏠 Домашние дела",
-  ONLINE: "💻 Онлайн",
-};
+const categoryLabels: Record<string, string> = Object.fromEntries(
+  Object.values(ALL_CATEGORIES).map((c) => [c.key, `${c.emoji} ${c.label}`])
+);
 
 const statusLabels: Record<string, { label: string; className: string }> = {
   OPEN: { label: "Открыта", className: "badge-open" },
@@ -35,7 +32,7 @@ const statusFilters = [
   { label: "Отменены", value: "CANCELLED" },
 ];
 
-const categories = ["CHILDREN", "SHOPPING", "DELIVERY", "QUEUE", "HOUSEHOLD", "ONLINE"];
+const categories = Object.values(TaskCategory);
 
 export default async function AdminTasksPage({ searchParams }: PageProps) {
   const { status, category } = searchParams;
@@ -43,7 +40,9 @@ export default async function AdminTasksPage({ searchParams }: PageProps) {
   const tasks = await prisma.task.findMany({
     where: {
       ...(status ? { status: status as "OPEN" | "IN_PROGRESS" | "REVIEW" | "DONE" | "CANCELLED" } : {}),
-      ...(category ? { category: category as "CHILDREN" | "SHOPPING" | "DELIVERY" | "QUEUE" | "HOUSEHOLD" | "ONLINE" } : {}),
+      ...(category && categories.includes(category as TaskCategory)
+        ? { category: category as TaskCategory }
+        : {}),
     },
     include: {
       creator: { select: { id: true, name: true } },
