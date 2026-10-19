@@ -12,9 +12,14 @@ import {
   countMissingLessons,
   extractYoutubeId,
   getEnrollment,
+  getLessonBlocksForUser,
+  quizStatusByLesson,
   toStudentSubmission,
 } from "@/lib/academy";
 import { Markdown } from "@/components/Markdown";
+import { QuizBlock } from "@/components/academy/QuizBlock";
+import { TextBlockDone } from "@/components/academy/TextBlockDone";
+import type { ClientQuizData } from "@/lib/academy-blocks";
 import { LessonNavClient } from "./LessonNavClient";
 import { SubmissionClient } from "./SubmissionClient";
 import { MentorChat } from "@/components/academy/MentorChat";
@@ -156,6 +161,16 @@ export default async function LessonPage({ params }: Params) {
 
   const completed = new Set(enrollment.completedLessonIds);
   const lessons = lesson.track.lessons;
+
+  // Этап 6: блоки урока + статус тестов по всем урокам трека (для отметок «✓ тест»)
+  const [blocks, quizStatus] = await Promise.all([
+    getLessonBlocksForUser(lesson.id, session.user.id),
+    quizStatusByLesson(lessons.map((l) => l.id), session.user.id),
+  ]);
+  const hasTextBlock = blocks.some((b) => b.type === "TEXT");
+  const showLegacyBody = !(hasTextBlock && (lesson.type === "TEXT" || lesson.type === "TASK")); // contentMd не дублируем
+  const requiredBlocks = blocks.filter((b) => b.required);
+  const quizGate = { required: requiredBlocks.length > 0, passed: requiredBlocks.every((b) => b.done) };
   const idx = lessons.findIndex((l) => l.id === lesson.id);
   const prevId = idx > 0 ? lessons[idx - 1].id : null;
   const nextId = idx < lessons.length - 1 ? lessons[idx + 1].id : null;
@@ -206,7 +221,51 @@ export default async function LessonPage({ params }: Params) {
             {lesson.titleRu}
           </h1>
 
-          <LessonBody lesson={lesson} submissionPanel={submissionPanel} />
+          {showLegacyBody && <LessonBody lesson={lesson} submissionPanel={submissionPanel} />}
+
+          {/* Этап 6: блоки по порядку */}
+          {blocks.length > 0 && (
+            <div className="space-y-4 mt-4">
+              {blocks.map((b) => {
+                if (b.type === "QUIZ") {
+                  const p = b.progress?.data;
+                  return (
+                    <QuizBlock
+                      key={b.id}
+                      blockId={b.id}
+                      data={b.data as ClientQuizData}
+                      required={b.required}
+                      initial={b.progress && p ? { score: p.score ?? 0, total: p.total ?? (b.data as ClientQuizData).total, passed: !!p.passed, attempts: b.progress.attempts } : null}
+                    />
+                  );
+                }
+                if (b.type === "TEXT") {
+                  return (
+                    <div key={b.id} className="card md:p-8">
+                      <Markdown content={String((b.data as { md: string }).md ?? "")} />
+                      <TextBlockDone blockId={b.id} initialDone={!!b.progress} />
+                    </div>
+                  );
+                }
+                const url = String((b.data as { url: string }).url ?? "");
+                const yt = extractYoutubeId(url);
+                return (
+                  <div key={b.id}>
+                    {yt ? (
+                      <div className="aspect-video rounded-2xl overflow-hidden bg-black">
+                        <iframe className="w-full h-full" src={`https://www.youtube-nocookie.com/embed/${yt}?rel=0`} title="Видео" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowFullScreen referrerPolicy="strict-origin-when-cross-origin" />
+                      </div>
+                    ) : (
+                      <div className="aspect-video rounded-2xl overflow-hidden bg-black">
+                        <video controls playsInline preload="metadata" src={url} className="w-full h-full" />
+                      </div>
+                    )}
+                    <TextBlockDone blockId={b.id} initialDone={!!b.progress} />
+                  </div>
+                );
+              })}
+            </div>
+          )}
 
           <div className="mt-4 flex flex-wrap gap-2">
             <SavePromptButton lessonId={lesson.id} lessonTitle={lesson.titleRu} source="PRACTICE" />
@@ -219,6 +278,8 @@ export default async function LessonPage({ params }: Params) {
             prevLessonId={prevId}
             nextLessonId={nextId}
             initiallyCompleted={completed.has(lesson.id)}
+            quizRequired={quizGate.required}
+            quizPassedInitially={quizGate.passed}
           />
         </div>
 
@@ -254,6 +315,7 @@ export default async function LessonPage({ params }: Params) {
                       {isDone ? "✓" : l.order}
                     </span>
                     <span className="flex-1 min-w-0 truncate">{l.titleRu}</span>
+                    {quizStatus.get(l.id)?.quizPassed && <span className="text-[10px] font-semibold text-[#14A800] shrink-0" title="Тест сдан">✓ тест</span>}
                     <span className="text-xs text-gray-400 shrink-0">{LESSON_TYPE_ICON[l.type]}</span>
                   </Link>
                 </li>

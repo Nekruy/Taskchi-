@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { QUIZ_PASSED_EVENT } from "@/components/academy/QuizBlock";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 
@@ -10,11 +11,26 @@ interface Props {
   prevLessonId: string | null;
   nextLessonId: string | null;
   initiallyCompleted: boolean;
+  quizRequired?: boolean;
+  quizPassedInitially?: boolean;
 }
 
-export function LessonNavClient({ slug, lessonId, prevLessonId, nextLessonId, initiallyCompleted }: Props) {
+export function LessonNavClient({ slug, lessonId, prevLessonId, nextLessonId, initiallyCompleted, quizRequired = false, quizPassedInitially = true }: Props) {
   const router = useRouter();
   const [completed, setCompleted] = useState(initiallyCompleted);
+  const [quizPassed, setQuizPassed] = useState(quizPassedInitially);
+  const [justPassed, setJustPassed] = useState(false);
+
+  // QuizBlock сообщает о сдаче — кнопка становится активной и подсвечивается
+  useEffect(() => {
+    const onPassed = () => {
+      setQuizPassed(true);
+      setJustPassed(true);
+    };
+    window.addEventListener(QUIZ_PASSED_EVENT, onPassed);
+    return () => window.removeEventListener(QUIZ_PASSED_EVENT, onPassed);
+  }, []);
+  const gateBlocked = quizRequired && !quizPassed;
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
@@ -64,9 +80,18 @@ export function LessonNavClient({ slug, lessonId, prevLessonId, nextLessonId, in
             </Link>
           </div>
         ) : (
-          <button type="button" onClick={completeAndNext} disabled={loading} className="btn-primary">
-            {loading ? "Сохраняем..." : nextLessonId ? "Отметить пройденным и дальше →" : "Отметить пройденным ✓"}
-          </button>
+          <div className="flex flex-col items-end gap-1">
+            <button
+              type="button"
+              onClick={completeAndNext}
+              disabled={loading || gateBlocked}
+              className={`btn-primary ${justPassed ? "animate-btn-pulse" : ""}`}
+              title={gateBlocked ? "Сначала пройдите тест" : undefined}
+            >
+              {loading ? "Сохраняем..." : nextLessonId ? "Отметить пройденным и дальше →" : "Отметить пройденным ✓"}
+            </button>
+            {gateBlocked && <span className="text-xs text-gray-500">Сначала пройдите тест</span>}
+          </div>
         )}
       </div>
       {error && <p className="text-sm text-red-600 mt-3 sm:text-right">{error}</p>}

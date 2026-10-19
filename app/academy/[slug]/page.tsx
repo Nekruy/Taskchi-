@@ -12,6 +12,7 @@ import {
   formatMinutes,
   getEnrollment,
   pluralLessons,
+  quizStatusByLesson,
 } from "@/lib/academy";
 import { TrackActionsClient } from "./TrackActionsClient";
 import { PartnerLine } from "@/components/PartnerLine";
@@ -48,6 +49,7 @@ export default async function TrackPage({ params }: { params: { slug: string } }
     userId ? prisma.enrollment.count({ where: { userId } }) : Promise.resolve(0),
   ]);
   const completed = new Set(enrollment?.completedLessonIds ?? []);
+  const quizStatus = await quizStatusByLesson(track.lessons.map((l) => l.id), userId);
 
   const cat = CATEGORY_MAP[track.taskCategory] ?? { emoji: "📋", label: track.taskCategory };
   const total = track.lessons.length;
@@ -120,6 +122,7 @@ export default async function TrackPage({ params }: { params: { slug: string } }
                 <span className="block text-xs text-gray-400 mt-0.5">
                   {LESSON_TYPE_ICON[l.type]} {LESSON_TYPE_LABEL[l.type]}
                   {l.durationMin ? ` · ${l.durationMin} мин` : ""}
+                  {quizStatus.get(l.id)?.hasQuiz && (quizStatus.get(l.id)?.quizPassed ? <span className="text-[#14A800] font-semibold"> · ✓ тест</span> : " · тест")}
                 </span>
               </span>
               {canOpen && <span className="text-gray-300 text-lg">›</span>}

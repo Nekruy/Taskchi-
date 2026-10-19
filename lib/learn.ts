@@ -2,7 +2,7 @@
 
 import { createHash } from "crypto";
 import { prisma } from "@/lib/prisma";
-import { requiredLessonIds } from "@/lib/academy";
+import { quizStatusByLesson, requiredLessonIds } from "@/lib/academy";
 
 export const PROMPT_TAGS = ["Посты", "Письма", "Описания", "Перевод", "Таблицы", "Картинки", "Другое"] as const;
 export const PROMPT_SOURCES = ["PRACTICE", "MENTOR", "MANUAL"] as const;
@@ -313,6 +313,13 @@ export async function getOverview(userId: string) {
   ]);
   const streak = computeStreak(days);
   const current = pickCurrent(cards);
+  // Этап 6: текущий урок прочитан (тест начат), но тест не сдан → «Пройти тест урока N»
+  let nextLessonQuizPending = false;
+  if (current?.nextLessonId) {
+    const qs = await quizStatusByLesson([current.nextLessonId], userId);
+    const st = qs.get(current.nextLessonId);
+    nextLessonQuizPending = !!st && st.hasQuiz && st.attempted && !st.quizPassed;
+  }
   const [achievements, mentor, recommended] = await Promise.all([
     getAchievements(userId, cards, streak),
     getMentorDialogs(userId, 3),
@@ -327,6 +334,7 @@ export async function getOverview(userId: string) {
     streak,
     activeToday: days.has(dayKey(new Date())),
     current,
+    nextLessonQuizPending,
     plan: plan ? { daysPerWeek: plan.daysPerWeek, preferredDays: plan.preferredDays, items: schedulePlan(plan, cards) } : null,
     courses: cards,
     achievements: { earned: achievements.filter((a) => a.earned).length, total: achievements.length, top: achievements.filter((a) => a.earned).slice(0, 3), list: achievements },

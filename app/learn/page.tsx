@@ -79,7 +79,7 @@ export default async function LearnHome() {
             ) : cur.submission === "PENDING" && cur.taskLessonId ? (
               <Link href={`/academy/${cur.slug}/${cur.taskLessonId}`} className="btn-secondary">Задание на проверке</Link>
             ) : cur.nextLessonId ? (
-              <Link href={`/academy/${cur.slug}/${cur.nextLessonId}`} className="btn-primary">Продолжить урок {cur.nextLessonOrder} →</Link>
+              <Link href={`/academy/${cur.slug}/${cur.nextLessonId}`} className="btn-primary">{o.nextLessonQuizPending ? `Пройти тест урока ${cur.nextLessonOrder} →` : `Продолжить урок ${cur.nextLessonOrder} →`}</Link>
             ) : (
               <Link href={`/academy/${cur.slug}`} className="btn-secondary">К курсу</Link>
             )}
