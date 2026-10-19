@@ -1,18 +1,25 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import type { ClientQuizData, QuizResultItem } from "@/lib/academy-blocks";
+import type { ClientQuizData } from "@/lib/academy-blocks";
 
 interface Props {
   blockId: string;
   data: ClientQuizData;
   required: boolean;
   initial: { score: number; total: number; passed: boolean; attempts: number } | null;
+  /** Незавершённая попытка (из BlockProgress.data.inProgress) — продолжаем с первого неотвеченного вопроса. */
+  inProgress: { answers: (number | null)[] } | null;
 }
 
 type Phase = "intro" | "question" | "result" | "collapsed";
+interface Feedback {
+  isRight: boolean;
+  correct: number;
+  explanation: string;
+}
 
-/** Перемешивание вариантов: храним порядок отображения → исходный индекс. */
+/** Перемешивание вариантов: порядок отображения → исходный индекс. */
 function shuffledOrder(n: number): number[] {
   const arr = Array.from({ length: n }, (_, i) => i);
   for (let i = arr.length - 1; i > 0; i--) {
@@ -24,61 +31,90 @@ function shuffledOrder(n: number): number[] {
 
 export const QUIZ_PASSED_EVENT = "lesson:quiz-passed";
 
-export function QuizBlock({ blockId, data, required, initial }: Props) {
-  const [phase, setPhase] = useState<Phase>(initial?.passed ? "collapsed" : "intro");
+export function QuizBlock({ blockId, data, required, initial, inProgress }: Props) {
+  const total = data.total;
+  const resumeIndex = useMemo(() => {
+    if (!inProgress || inProgress.answers.length !== total) return null;
+    const i = inProgress.answers.findIndex((a) => a === null);
+    return i === -1 ? null : i;
+  }, [inProgress, total]);
+
+  const [phase, setPhase] = useState<Phase>(initial?.passed && resumeIndex === null ? "collapsed" : "intro");
   const [idx, setIdx] = useState(0);
-  const [orders, setOrders] = useState<number[][]>([]);
-  const [answers, setAnswers] = useState<number[]>([]); // исходные индексы
-  const [picked, setPicked] = useState<number | null>(null); // исходный индекс выбранного на текущем вопросе
-  const [result, setResult] = useState<{ score: number; total: number; passed: boolean; results: QuizResultItem[]; attempts: number } | null>(null);
+  const [order, setOrder] = useState<number[]>([]);
+  const [picked, setPicked] = useState<number | null>(null);
+  const [feedback, setFeedback] = useState<Feedback | null>(null);
+  const [result, setResult] = useState<{ score: number; total: number; passed: boolean; attempts: number } | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [best, setBest] = useState(initial);
 
-  const total = data.total;
   const q = data.questions[idx];
-  const order = orders[idx] ?? data.questions[idx]?.options.map((_, i) => i) ?? [];
 
-  const start = useCallback(() => {
-    setOrders(data.questions.map((qq) => shuffledOrder(qq.options.length)));
-    setAnswers([]);
+  const goTo = useCallback((i: number) => {
+    setIdx(i);
+    setOrder(shuffledOrder(data.questions[i]?.options.length ?? 4));
     setPicked(null);
-    setIdx(0);
-    setResult(null);
+    setFeedback(null);
     setError("");
-    setPhase("question");
   }, [data.questions]);
 
-  const pick = useCallback((origIndex: number) => {
-    if (picked !== null) return; // ответ менять нельзя
-    setPicked(origIndex);
-  }, [picked]);
+  const start = useCallback((from = 0) => {
+    setResult(null);
+    goTo(from);
+    setPhase("question");
+  }, [goTo]);
 
+  /** Выбор варианта → мгновенная проверка одного вопроса на сервере. */
+  const pick = useCallback(async (origIndex: number) => {
+    if (picked !== null || loading) return;
+    setPicked(origIndex);
+    setLoading(true);
+    setError("");
+    try {
+      const res = await fetch(`/api/academy/blocks/${blockId}/answer`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ questionIndex: idx, answer: origIndex }),
+      });
+      const j = await res.json().catch(() => ({}));
+      if (res.status === 409 && typeof j.current === "number") {
+        // рассинхрон с сервером (например, второй вкладкой) — перейти к актуальному вопросу
+        goTo(j.current);
+        setError(j.error || "Продолжаем с текущего вопроса");
+        return;
+      }
+      if (!res.ok) {
+        setPicked(null);
+        setError(j.error || `Ошибка ${res.status}. Попробуйте ещё раз`);
+        return;
+      }
+      setFeedback({ isRight: j.isRight, correct: j.correct, explanation: j.explanation });
+    } catch {
+      setPicked(null);
+      setError("Нет связи с сервером. Проверьте интернет");
+    } finally {
+      setLoading(false);
+    }
+  }, [picked, loading, blockId, idx, goTo]);
+
+  /** «Дальше»: следующий вопрос или завершение попытки. */
   const next = useCallback(async () => {
-    if (picked === null) return;
-    const nextAnswers = [...answers, picked];
-    setAnswers(nextAnswers);
-    setPicked(null);
+    if (!feedback || loading) return;
     if (idx + 1 < total) {
-      setIdx(idx + 1);
+      goTo(idx + 1);
       return;
     }
     setLoading(true);
     setError("");
     try {
-      const res = await fetch(`/api/academy/blocks/${blockId}/complete`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ answers: nextAnswers }),
-      });
+      const res = await fetch(`/api/academy/blocks/${blockId}/complete`, { method: "POST", headers: { "Content-Type": "application/json" }, body: "{}" });
       const j = await res.json().catch(() => ({}));
       if (!res.ok) {
         setError(j.error || `Ошибка ${res.status}. Попробуйте ещё раз`);
-        setIdx(total - 1);
-        setAnswers(nextAnswers.slice(0, -1));
         return;
       }
-      setResult(j);
+      setResult({ score: j.score, total: j.total, passed: j.passed, attempts: j.attempts });
       setBest({ score: j.score, total: j.total, passed: j.passed, attempts: j.attempts });
       setPhase("result");
       if (j.passed) window.dispatchEvent(new CustomEvent(QUIZ_PASSED_EVENT, { detail: { blockId } }));
@@ -87,31 +123,27 @@ export function QuizBlock({ blockId, data, required, initial }: Props) {
     } finally {
       setLoading(false);
     }
-  }, [picked, answers, idx, total, blockId]);
+  }, [feedback, loading, idx, total, blockId, goTo]);
 
   // Клавиатура: 1–4 выбор, Enter — дальше
   useEffect(() => {
     if (phase !== "question") return;
     const onKey = (e: KeyboardEvent) => {
-      const target = e.target as HTMLElement | null;
-      if (target && (target.tagName === "TEXTAREA" || target.tagName === "INPUT")) return;
+      const t = e.target as HTMLElement | null;
+      if (t && (t.tagName === "TEXTAREA" || t.tagName === "INPUT")) return;
       if (/^[1-4]$/.test(e.key) && picked === null) {
         const pos = Number(e.key) - 1;
         if (order[pos] !== undefined) pick(order[pos]);
-      } else if (e.key === "Enter" && picked !== null && !loading) {
+      } else if (e.key === "Enter" && feedback && !loading) {
         e.preventDefault();
         next();
       }
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [phase, picked, order, pick, next, loading]);
+  }, [phase, picked, order, pick, next, feedback, loading]);
 
-  // Мгновенная подсветка после выбора: правильный ответ знаем только по результатам сервера → подсвечиваем
-  // выбранный вариант, а правильность показываем через ответ сервера по завершении. Чтобы дать «мгновенно»
-  // зелёный/красный и объяснение, запрашиваем проверку одного вопроса локально невозможно (correct скрыт),
-  // поэтому после выбора показываем «Ответ принят», а разбор — на экране результатов по каждому вопросу.
-  const passLabel = useMemo(() => (data.passScore !== null ? `нужно ${data.passScore} правильных` : "без порога"), [data.passScore]);
+  const passLabel = data.passScore !== null ? `нужно ${data.passScore} правильных` : "без порога";
 
   if (phase === "collapsed" && best) {
     return (
@@ -123,7 +155,7 @@ export function QuizBlock({ blockId, data, required, initial }: Props) {
             <p className="text-xs text-gray-500">Попыток: {best.attempts}</p>
           </div>
         </div>
-        <button type="button" onClick={start} className="btn-secondary py-2 text-xs">
+        <button type="button" onClick={() => start(0)} className="btn-secondary py-2 text-xs">
           Пройти ещё раз
         </button>
       </section>
@@ -139,15 +171,21 @@ export function QuizBlock({ blockId, data, required, initial }: Props) {
           {total} {total === 1 ? "вопрос" : total < 5 ? "вопроса" : "вопросов"} · {passLabel}
           {required && " · нужен для завершения урока"}
         </p>
-        {best && !best.passed && (
+        {best && !best.passed && best.attempts > 0 && (
           <p className="text-xs text-amber-700 bg-amber-50 border border-amber-100 rounded-xl px-3 py-2 mt-3 inline-block">
             Прошлая попытка: {best.score}/{best.total} · попыток {best.attempts}
           </p>
         )}
         <div className="mt-5">
-          <button type="button" onClick={start} className="btn-primary">
-            Начать
-          </button>
+          {resumeIndex !== null ? (
+            <button type="button" onClick={() => start(resumeIndex)} className="btn-primary">
+              Продолжить тест ({resumeIndex}/{total} отвечено)
+            </button>
+          ) : (
+            <button type="button" onClick={() => start(0)} className="btn-primary">
+              Начать
+            </button>
+          )}
         </div>
       </section>
     );
@@ -155,46 +193,22 @@ export function QuizBlock({ blockId, data, required, initial }: Props) {
 
   if (phase === "result" && result) {
     return (
-      <section className="card md:p-8">
-        <div className="text-center mb-6">
-          <div className="text-4xl mb-2">{result.passed ? "🎉" : "💪"}</div>
-          <h3 className="text-xl font-extrabold text-gray-900">
-            {result.score} из {result.total} — {result.passed ? "тест пройден ✓" : "попробуйте ещё раз"}
-          </h3>
-          <p className="text-sm text-gray-500 mt-1">
-            {result.passed ? "Теперь можно отметить урок пройденным" : `Нужно ${data.passScore ?? 0} правильных · попытка ${result.attempts}`}
-          </p>
-        </div>
-        <ol className="space-y-3 mb-6">
-          {data.questions.map((qq, i) => {
-            const r = result.results[i];
-            const a = answers[i];
-            return (
-              <li key={i} className={`rounded-xl border px-4 py-3 ${r.isRight ? "border-emerald-200 bg-emerald-50" : "border-red-200 bg-red-50"}`}>
-                <p className="font-semibold text-gray-900 text-sm">
-                  {r.isRight ? "✅" : "❌"} {i + 1}. {qq.q}
-                </p>
-                <p className="text-xs text-gray-700 mt-1">
-                  Ваш ответ: <span className="font-semibold">{qq.options[a] ?? "—"}</span>
-                  {!r.isRight && (
-                    <>
-                      {" · "}Правильно: <span className="font-semibold">{qq.options[r.correct]}</span>
-                    </>
-                  )}
-                </p>
-                <p className="text-xs text-gray-600 mt-1">{r.explanation}</p>
-              </li>
-            );
-          })}
-        </ol>
-        <div className="flex flex-wrap gap-3 justify-center">
+      <section className="card md:p-8 text-center">
+        <div className="text-4xl mb-2">{result.passed ? "🎉" : "💪"}</div>
+        <h3 className="text-xl font-extrabold text-gray-900">
+          {result.score} из {result.total} — {result.passed ? "тест пройден ✓" : "попробуйте ещё раз"}
+        </h3>
+        <p className="text-sm text-gray-500 mt-1">
+          {result.passed ? "Теперь можно отметить урок пройденным" : `Нужно ${data.passScore ?? 0} правильных · попытка ${result.attempts}`}
+        </p>
+        <div className="flex flex-wrap gap-3 justify-center mt-6">
           {result.passed ? (
             <button type="button" onClick={() => setPhase("collapsed")} className="btn-secondary">
               Свернуть
             </button>
           ) : (
             <>
-              <button type="button" onClick={start} className="btn-primary">
+              <button type="button" onClick={() => start(0)} className="btn-primary">
                 Пройти заново
               </button>
               <button type="button" onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })} className="btn-outline">
@@ -215,36 +229,40 @@ export function QuizBlock({ blockId, data, required, initial }: Props) {
         <span>{passLabel}</span>
       </div>
       <div className="h-1.5 rounded-full bg-gray-100 overflow-hidden mb-5">
-        <div className="h-full rounded-full bg-gradient-brand transition-all" style={{ width: `${Math.round(((idx + (picked !== null ? 1 : 0)) / total) * 100)}%` }} />
+        <div className="h-full rounded-full bg-gradient-brand transition-all" style={{ width: `${Math.round(((idx + (feedback ? 1 : 0)) / total) * 100)}%` }} />
       </div>
       <h3 className="text-lg font-extrabold text-gray-900 leading-snug mb-4">{q.q}</h3>
       <div className="space-y-2">
         {order.map((orig, pos) => {
           const isPicked = picked === orig;
+          const isCorrect = feedback ? feedback.correct === orig : false;
+          let cls = "border-gray-200 bg-white text-gray-800 hover:border-[#14A800] hover:bg-primary-50/40";
+          if (feedback) {
+            if (isCorrect) cls = "border-emerald-400 bg-emerald-50 text-gray-900";
+            else if (isPicked) cls = "border-red-400 bg-red-50 text-gray-900";
+            else cls = "border-gray-100 bg-gray-50 text-gray-400";
+          } else if (isPicked) cls = "border-[#14A800] bg-primary-50 text-gray-900";
+          else if (picked !== null) cls = "border-gray-100 bg-gray-50 text-gray-400";
           return (
-            <button
-              key={orig}
-              type="button"
-              onClick={() => pick(orig)}
-              disabled={picked !== null}
-              className={`w-full text-left px-4 py-3.5 rounded-xl border-2 text-sm font-medium transition-all ${
-                isPicked
-                  ? "border-[#14A800] bg-primary-50 text-gray-900"
-                  : picked !== null
-                  ? "border-gray-100 bg-gray-50 text-gray-400"
-                  : "border-gray-200 bg-white text-gray-800 hover:border-[#14A800] hover:bg-primary-50/40"
-              }`}
-            >
+            <button key={orig} type="button" onClick={() => pick(orig)} disabled={picked !== null} className={`w-full text-left px-4 py-3.5 rounded-xl border-2 text-sm font-medium transition-all ${cls}`}>
               <span className="inline-flex w-6 h-6 rounded-lg bg-gray-100 text-gray-600 text-xs font-bold items-center justify-center mr-2.5 align-middle">{pos + 1}</span>
               {q.options[orig]}
+              {feedback && isCorrect && <span className="ml-2 text-emerald-600 font-bold">✓</span>}
+              {feedback && isPicked && !isCorrect && <span className="ml-2 text-red-500 font-bold">✗</span>}
             </button>
           );
         })}
       </div>
+      {feedback && (
+        <div className={`mt-4 rounded-xl border px-4 py-3 text-sm ${feedback.isRight ? "border-emerald-200 bg-emerald-50 text-emerald-900" : "border-red-200 bg-red-50 text-red-900"}`}>
+          <p className="font-bold mb-0.5">{feedback.isRight ? "Верно!" : "Неверно"}</p>
+          <p className="text-gray-700">{feedback.explanation}</p>
+        </div>
+      )}
       <div className="flex items-center justify-between mt-5">
-        <span className="text-xs text-gray-400">{picked === null ? "Клавиши 1–4 — выбрать" : "Ответ принят · Enter — дальше"}</span>
-        <button type="button" onClick={next} disabled={picked === null || loading} className="btn-primary">
-          {loading ? "Проверяем..." : idx + 1 < total ? "Дальше →" : "Завершить"}
+        <span className="text-xs text-gray-400">{!feedback ? (loading ? "Проверяем…" : "Клавиши 1–4 — выбрать") : "Enter — дальше"}</span>
+        <button type="button" onClick={next} disabled={!feedback || loading} className="btn-primary">
+          {loading && feedback ? "Считаем..." : idx + 1 < total ? "Дальше →" : "Завершить"}
         </button>
       </div>
       {error && <p className="text-sm text-red-600 mt-3">{error}</p>}

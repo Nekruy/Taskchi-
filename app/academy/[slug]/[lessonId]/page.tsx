@@ -235,7 +235,8 @@ export default async function LessonPage({ params }: Params) {
                       blockId={b.id}
                       data={b.data as ClientQuizData}
                       required={b.required}
-                      initial={b.progress && p ? { score: p.score ?? 0, total: p.total ?? (b.data as ClientQuizData).total, passed: !!p.passed, attempts: b.progress.attempts } : null}
+                      initial={b.progress && p && typeof p.score === "number" ? { score: p.score, total: p.total ?? (b.data as ClientQuizData).total, passed: !!p.passed, attempts: b.progress.attempts } : null}
+                      inProgress={p?.inProgress ? { answers: p.inProgress.answers } : null}
                     />
                   );
                 }

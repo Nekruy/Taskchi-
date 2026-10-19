@@ -8,7 +8,7 @@ import { isRequiredBlock, scoreQuiz, type QuizData, type QuizProgressData } from
 
 export const dynamic = "force-dynamic";
 
-const QuizAnswersSchema = z.object({ answers: z.array(z.number().int().min(0).max(3)).min(1).max(20) });
+const QuizAnswersSchema = z.object({ answers: z.array(z.number().int().min(0).max(3), { required_error: "Сначала ответьте на все вопросы" }).min(1).max(20) });
 
 // POST /api/academy/blocks/[id]/complete — TEXT/VIDEO: отметить; QUIZ: { answers } → подсчёт, результаты
 export async function POST(req: NextRequest, { params }: { params: { id: string } }) {
@@ -24,7 +24,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
     const enrollment = await getEnrollment(userId, block.lesson.track.id);
     if (!enrollment) return NextResponse.json({ error: "Вы не записаны на этот трек" }, { status: 403 });
 
-    const existing = await prisma.blockProgress.findUnique({ where: { userId_blockId: { userId, blockId: block.id } }, select: { id: true, attempts: true } });
+    const existing = await prisma.blockProgress.findUnique({ where: { userId_blockId: { userId, blockId: block.id } }, select: { id: true, attempts: true, data: true } });
 
     if (block.type !== "QUIZ") {
       const p = existing
@@ -34,13 +34,22 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
     }
 
     const quiz = block.data as unknown as QuizData;
-    const body = await req.json().catch(() => ({}));
-    const { answers } = QuizAnswersSchema.parse(body);
-    if (answers.length !== quiz.questions.length) {
-      return NextResponse.json({ error: `Нужно ответить на все вопросы (${quiz.questions.length})` }, { status: 400 });
+    // Если есть незавершённая попытка с ответами на все вопросы — берём её (ответы уже проверены по одному),
+    // иначе — массив из тела (старый клиент / прямой вызов).
+    const prev = (existing?.data as Partial<QuizProgressData> | null) ?? null;
+    const ip = prev?.inProgress ?? null;
+    let answers: number[];
+    if (ip && ip.answers.length === quiz.questions.length && ip.answers.every((a) => a !== null)) {
+      answers = ip.answers as number[];
+    } else {
+      const body = await req.json().catch(() => ({}));
+      answers = QuizAnswersSchema.parse(body).answers;
+      if (answers.length !== quiz.questions.length) {
+        return NextResponse.json({ error: `Нужно ответить на все вопросы (${quiz.questions.length})` }, { status: 400 });
+      }
     }
     const { score, total, passed, results } = scoreQuiz(quiz, answers);
-    const data: QuizProgressData = { score, total, answers, passed };
+    const data: QuizProgressData = { score, total, answers, passed, inProgress: null };
     const attempts = existing ? existing.attempts + 1 : 1;
     await prisma.blockProgress.upsert({
       where: { userId_blockId: { userId, blockId: block.id } },

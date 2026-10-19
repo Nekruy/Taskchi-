@@ -69,12 +69,28 @@ export function stripQuizForClient(data: QuizData): ClientQuizData {
   };
 }
 
-/** Что хранится в BlockProgress.data для QUIZ (на будущее — XP считается из score/total/attempts). */
+/** Текущая незавершённая попытка (переживает перезагрузку страницы). */
+export interface QuizInProgress {
+  answers: (number | null)[];
+  startedAt: string;
+}
+
+/**
+ * Что хранится в BlockProgress.data для QUIZ: последний завершённый результат (score/total/answers/passed)
+ * + необязательная незавершённая попытка inProgress. XP на будущее считается из score/total/attempts.
+ */
 export interface QuizProgressData {
   score: number;
   total: number;
   answers: number[];
   passed: boolean;
+  inProgress?: QuizInProgress | null;
+}
+
+/** Проверка одного вопроса (для мгновенной обратной связи). */
+export function checkAnswer(data: QuizData, questionIndex: number, answer: number): QuizResultItem {
+  const q = data.questions[questionIndex];
+  return { correct: q.correct, explanation: q.explanation, isRight: answer === q.correct };
 }
 
 export interface QuizResultItem {
