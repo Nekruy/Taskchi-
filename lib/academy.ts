@@ -147,3 +147,76 @@ export function toStudentSubmission(s: {
     createdAt: s.createdAt.toISOString(),
   };
 }
+
+/* ─── Этап 6: блоки урока ─────────────────────────────────────────────────── */
+
+import { isBlockDone, isRequiredBlock, stripQuizForClient, type QuizData, type QuizProgressData } from "@/lib/academy-blocks";
+
+export interface ClientBlock {
+  id: string;
+  order: number;
+  type: "TEXT" | "QUIZ" | "VIDEO";
+  data: unknown; // TEXT { md } | VIDEO { url } | QUIZ — без correct/explanation
+  required: boolean;
+  progress: { attempts: number; completedAt: string; data: Partial<QuizProgressData> | null } | null;
+  done: boolean;
+}
+
+/** Блоки урока для клиента + прогресс пользователя. QUIZ отдаётся без правильных ответов. */
+export async function getLessonBlocksForUser(lessonId: string, userId: string): Promise<ClientBlock[]> {
+  const blocks = await prisma.lessonBlock.findMany({
+    where: { lessonId },
+    orderBy: [{ order: "asc" }, { id: "asc" }],
+    include: { progress: { where: { userId }, select: { attempts: true, completedAt: true, data: true } } },
+  });
+  return blocks.map((b) => {
+    const p = b.progress[0] ?? null;
+    const required = isRequiredBlock(b);
+    return {
+      id: b.id,
+      order: b.order,
+      type: b.type,
+      data: b.type === "QUIZ" ? stripQuizForClient(b.data as unknown as QuizData) : b.data,
+      required,
+      progress: p ? { attempts: p.attempts, completedAt: p.completedAt.toISOString(), data: (p.data as Partial<QuizProgressData> | null) ?? null } : null,
+      done: isBlockDone(b, p),
+    };
+  });
+}
+
+/** Гейт завершения урока: есть ли обязательные блоки и все ли закрыты. */
+export async function lessonBlockGate(lessonId: string, userId: string): Promise<{ required: number; done: number; ok: boolean }> {
+  const blocks = await prisma.lessonBlock.findMany({
+    where: { lessonId },
+    include: { progress: { where: { userId }, select: { data: true } } },
+  });
+  const req = blocks.filter((b) => isRequiredBlock(b));
+  const done = req.filter((b) => isBlockDone(b, b.progress[0] ?? null)).length;
+  return { required: req.length, done, ok: done === req.length };
+}
+
+/**
+ * Для списка уроков: у каких есть обязательный тест и у каких он сдан пользователем.
+ * Возвращает Map lessonId → { hasQuiz, quizPassed, attempted }.
+ */
+export async function quizStatusByLesson(lessonIds: string[], userId: string | null) {
+  const blocks = await prisma.lessonBlock.findMany({
+    where: { lessonId: { in: lessonIds }, type: "QUIZ" },
+    include: userId ? { progress: { where: { userId }, select: { data: true } } } : undefined,
+  });
+  const map = new Map<string, { hasQuiz: boolean; quizPassed: boolean; attempted: boolean }>();
+  for (const id of lessonIds) map.set(id, { hasQuiz: false, quizPassed: false, attempted: false });
+  for (const b of blocks) {
+    if (!isRequiredBlock(b)) continue;
+    const cur = map.get(b.lessonId)!;
+    const p = (b as { progress?: { data: unknown }[] }).progress?.[0] ?? null;
+    cur.hasQuiz = true;
+    if (p) cur.attempted = true;
+    if (!isBlockDone(b, p)) cur.quizPassed = false;
+    else if (cur.quizPassed || !cur.attempted) cur.quizPassed = true;
+    // если в уроке несколько обязательных тестов — сдан, когда сданы все
+    const allPassed = blocks.filter((x) => x.lessonId === b.lessonId && isRequiredBlock(x)).every((x) => isBlockDone(x, (x as { progress?: { data: unknown }[] }).progress?.[0] ?? null));
+    cur.quizPassed = allPassed;
+  }
+  return map;
+}

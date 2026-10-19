@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { prisma } from "@/lib/prisma";
 import { authOptions } from "@/lib/auth";
+import { lessonBlockGate } from "@/lib/academy";
 
 export const dynamic = "force-dynamic";
 
@@ -36,6 +37,12 @@ export async function POST(_req: NextRequest, { params }: { params: { id: string
     });
     if (!enrollment) {
       return NextResponse.json({ error: "Вы не записаны на этот трек" }, { status: 403 });
+    }
+
+    // Этап 6: урок закрывается только после обязательных блоков (тест с passScore)
+    const gate = await lessonBlockGate(lesson.id, session.user.id);
+    if (!gate.ok) {
+      return NextResponse.json({ error: "Сначала пройдите тест", required: gate.required, done: gate.done }, { status: 409 });
     }
 
     await prisma.lessonProgress.upsert({
