@@ -142,6 +142,7 @@ model User {
   lessonNotes          LessonNote[]
   savedPrompts         SavedPrompt[]
   learningPlan         LearningPlan?
+  blockProgress        BlockProgress[]
 
   @@map("users")
 }
@@ -428,6 +429,7 @@ model Lesson {
   mentorMessages MentorMessage[]
   notes          LessonNote[]
   savedPrompts   SavedPrompt[]
+  blocks         LessonBlock[]
 
   @@index([trackId])
   @@map("lessons")
@@ -572,4 +574,43 @@ model LearningPlan {
   updatedAt     DateTime @updatedAt
 
   @@map("learning_plans")
+}
+
+// ─── Academy, Этап 6: блоки урока и прогресс по блокам ───────────────────────
+
+/// Тип блока урока. Расширяется без миграции структуры: PROMPT_LAB, SORT, ROLEPLAY — позже.
+enum BlockType {
+  TEXT
+  QUIZ
+  VIDEO
+}
+
+/// Блок урока. data — JSON по типу: TEXT { md }, VIDEO { url }, QUIZ { passScore?, questions[] }.
+model LessonBlock {
+  id       String    @id @default(cuid())
+  lessonId String
+  lesson   Lesson    @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+  order    Int
+  type     BlockType
+  data     Json
+
+  progress BlockProgress[]
+
+  @@index([lessonId, order])
+  @@map("lesson_blocks")
+}
+
+/// Прогресс ученика по блоку. Для QUIZ в data — { score, total, answers: number[], passed }; attempts — число попыток.
+model BlockProgress {
+  id          String      @id @default(cuid())
+  userId      String
+  user        User        @relation(fields: [userId], references: [id])
+  blockId     String
+  block       LessonBlock @relation(fields: [blockId], references: [id], onDelete: Cascade)
+  data        Json?
+  attempts    Int         @default(1)
+  completedAt DateTime    @default(now())
+
+  @@unique([userId, blockId])
+  @@map("block_progress")
 }

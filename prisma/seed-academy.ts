@@ -7,8 +7,9 @@
 // Запуск: dev — npm run db:seed:academy:dev; прод — DATABASE_URL="<session-пулер :5432>" ts-node --project tsconfig.server.json prisma/seed-academy.ts
 
 import { PrismaClient, LessonType } from "@prisma/client";
-import { readdirSync, readFileSync } from "fs";
+import { existsSync, readdirSync, readFileSync } from "fs";
 import { join } from "path";
+import { QuizDataSchema, QUIZ_SEED_ORDER } from "../lib/academy-blocks";
 
 const prisma = new PrismaClient();
 
@@ -134,8 +135,26 @@ async function main() {
     console.log(`  lesson ${saved.order}. ${saved.titleRu} [${saved.type}, ${saved.durationMin} мин, ${saved.contentMd?.length ?? 0} симв.]`);
   }
 
+  // Этап 6: QUIZ-блок в конце уроков 1–7 из content/academy/ai-tools/quiz-NN.json (если файл есть).
+  // Идемпотентно по [lessonId, type=QUIZ, order=QUIZ_SEED_ORDER]; JSON валидируется zod до записи.
+  let quizzes = 0;
+  for (const lesson of LESSONS) {
+    const file = join(CONTENT_DIR, `quiz-${String(lesson.order).padStart(2, "0")}.json`);
+    if (!existsSync(file)) continue;
+    const raw = JSON.parse(readFileSync(file, "utf8").replace(/^﻿/, ""));
+    const data = QuizDataSchema.parse(raw); // бросит понятную ошибку при невалидном файле
+    const dbLesson = await prisma.lesson.findFirst({ where: { trackId: track.id, order: lesson.order }, select: { id: true } });
+    if (!dbLesson) continue;
+    const existing = await prisma.lessonBlock.findFirst({ where: { lessonId: dbLesson.id, type: "QUIZ", order: QUIZ_SEED_ORDER }, select: { id: true } });
+    const saved = existing
+      ? await prisma.lessonBlock.update({ where: { id: existing.id }, data: { data } })
+      : await prisma.lessonBlock.create({ data: { lessonId: dbLesson.id, type: "QUIZ", order: QUIZ_SEED_ORDER, data } });
+    quizzes += 1;
+    console.log(`  quiz  ${lesson.order}. ${data.questions.length} вопросов, passScore ${data.passScore ?? "—"} (${saved.id})`);
+  }
+
   const count = await prisma.lesson.count({ where: { trackId: track.id } });
-  console.log(`✅ Academy seeded: 1 track, ${count} lessons`);
+  console.log(`✅ Academy seeded: 1 track, ${count} lessons, ${quizzes} quiz blocks`);
 }
 
 main()
