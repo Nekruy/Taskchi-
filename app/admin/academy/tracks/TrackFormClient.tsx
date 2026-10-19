@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { CATEGORIES } from "@/lib/categories";
 import { AcademyTabs, Toast } from "../AcademyTabs";
 import { LessonFormClient, type AdminLesson } from "./LessonFormClient";
+import { BlocksEditor } from "./BlocksEditor";
 
 interface PartnerOpt {
   id: string;
@@ -357,6 +358,7 @@ export function TrackFormClient({ trackId }: { trackId?: string }) {
                   editing && editing !== "new" && editing.id === l.id ? (
                     <div key={l.id} className="p-3">
                       <LessonFormClient trackId={trackId} lesson={l} defaultOrder={l.order} onCancel={() => setEditing(null)} onSaved={async () => { setEditing(null); showToast("Сохранено"); await loadTrack(); }} />
+                      <BlocksEditor lessonId={l.id} />
                     </div>
                   ) : (
                     <div key={l.id} className="flex items-center gap-3 px-4 py-3 text-sm">
